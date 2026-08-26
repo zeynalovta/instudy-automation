@@ -16,7 +16,6 @@ export default async function handler(req, res) {
       mode === "subscribe" &&
       token === VERIFY_TOKEN
     ) {
-      console.log("META WEBHOOK VERIFIED");
       return res.status(200).send(challenge);
     }
 
@@ -38,6 +37,11 @@ export default async function handler(req, res) {
     }
 
     for (const entry of req.body.entry || []) {
+
+      // =====================================================
+      // 1) INSTAGRAM DM / POSTBACK EVENTS
+      // =====================================================
+
       for (const event of entry.messaging || []) {
         const senderId = event.sender?.id;
 
@@ -50,7 +54,7 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // Düymə / postback
+        // BUTTON / POSTBACK
         if (event.postback?.payload) {
           console.log(
             "POSTBACK:",
@@ -66,26 +70,80 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // Gələn mətn mesajı
+        // TEXT MESSAGE
         const text = event.message?.text;
 
         if (!text) {
           continue;
         }
 
-        console.log("MESSAGE:", senderId, text);
+        console.log(
+          "DM MESSAGE:",
+          senderId,
+          text
+        );
 
         if (hasDmaKeyword(text)) {
-          await startDmaFlow(senderId, text);
+          await startDmaFlow(
+            senderId,
+            text
+          );
         }
+      }
+
+      // =====================================================
+      // 2) INSTAGRAM COMMENT EVENTS
+      // =====================================================
+
+      for (const change of entry.changes || []) {
+        if (change.field !== "comments") {
+          continue;
+        }
+
+        const value = change.value || {};
+
+        const commenterId =
+          value.from?.id ||
+          value.from?.user_id ||
+          value.user_id;
+
+        const commentText =
+          value.text ||
+          value.message ||
+          "";
+
+        if (!commenterId) {
+          console.log(
+            "COMMENT WITHOUT USER ID:",
+            JSON.stringify(value)
+          );
+
+          continue;
+        }
+
+        console.log(
+          "INSTAGRAM COMMENT:",
+          commenterId,
+          commentText
+        );
+
+        // Variant A:
+        // HƏR comment DMA flow-u başladır.
+        await startDmaFlow(
+          commenterId,
+          commentText || "Instagram comment"
+        );
       }
     }
 
     return res.status(200).send("EVENT_RECEIVED");
-  } catch (error) {
-    console.error("Webhook error:", error);
 
-    // Meta eyni event-i təkrar-təkrar göndərməsin
+  } catch (error) {
+    console.error(
+      "Webhook error:",
+      error
+    );
+
     return res.status(200).send("EVENT_RECEIVED");
   }
 }
