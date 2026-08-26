@@ -6,7 +6,64 @@ import {
 
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN;
 
+const COMMENT_REPLIES = [
+  "Məlumat göndərildi 📥",
+  "DM göndərildi 👀",
+  "Ətraflı məlumat təqdim edildi ✨"
+];
+
+function getRandomCommentReply() {
+  const index = Math.floor(
+    Math.random() * COMMENT_REPLIES.length
+  );
+
+  return COMMENT_REPLIES[index];
+}
+
+async function replyToComment(commentId) {
+  const message = getRandomCommentReply();
+
+  const response = await fetch(
+    `https://graph.instagram.com/v26.0/${commentId}/replies`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.INSTAGRAM_ACCESS_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  console.log(
+    "COMMENT REPLY RESPONSE:",
+    JSON.stringify(data)
+  );
+
+  if (!response.ok) {
+    console.error(
+      "COMMENT REPLY ERROR:",
+      JSON.stringify(data)
+    );
+
+    throw new Error(
+      `Comment reply failed: ${JSON.stringify(data)}`
+    );
+  }
+
+  return data;
+}
+
 export default async function handler(req, res) {
+
+  // =====================================================
+  // META WEBHOOK VERIFICATION
+  // =====================================================
+
   if (req.method === "GET") {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -16,14 +73,22 @@ export default async function handler(req, res) {
       mode === "subscribe" &&
       token === VERIFY_TOKEN
     ) {
-      return res.status(200).send(challenge);
+      console.log("META WEBHOOK VERIFIED");
+
+      return res
+        .status(200)
+        .send(challenge);
     }
 
-    return res.status(403).send("Verification failed");
+    return res
+      .status(403)
+      .send("Verification failed");
   }
 
   if (req.method !== "POST") {
-    return res.status(405).send("Method not allowed");
+    return res
+      .status(405)
+      .send("Method not allowed");
   }
 
   try {
@@ -33,29 +98,37 @@ export default async function handler(req, res) {
     );
 
     if (req.body.object !== "instagram") {
-      return res.status(200).send("EVENT_RECEIVED");
+      return res
+        .status(200)
+        .send("EVENT_RECEIVED");
     }
 
     for (const entry of req.body.entry || []) {
 
       // =====================================================
-      // 1) INSTAGRAM DM / POSTBACK EVENTS
+      // INSTAGRAM DM / BUTTON EVENTS
       // =====================================================
 
       for (const event of entry.messaging || []) {
-        const senderId = event.sender?.id;
+
+        const senderId =
+          event.sender?.id;
 
         if (!senderId) {
           continue;
         }
 
-        // Öz göndərdiyimiz mesajları ignore et
+        // Öz bot mesajlarımızı ignore et
         if (event.message?.is_echo) {
           continue;
         }
 
+        // ---------------------------------------------
         // BUTTON / POSTBACK
+        // ---------------------------------------------
+
         if (event.postback?.payload) {
+
           console.log(
             "POSTBACK:",
             senderId,
@@ -70,8 +143,12 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // TEXT MESSAGE
-        const text = event.message?.text;
+        // ---------------------------------------------
+        // TEXT DM
+        // ---------------------------------------------
+
+        const text =
+          event.message?.text;
 
         if (!text) {
           continue;
@@ -92,25 +169,40 @@ export default async function handler(req, res) {
       }
 
       // =====================================================
-      // 2) INSTAGRAM COMMENT EVENTS
+      // INSTAGRAM COMMENT EVENTS
       // =====================================================
 
       for (const change of entry.changes || []) {
+
         if (change.field !== "comments") {
           continue;
         }
 
-        const value = change.value || {};
+        const value =
+          change.value || {};
 
         const commenterId =
           value.from?.id ||
           value.from?.user_id ||
           value.user_id;
 
+        const commentId =
+          value.id ||
+          value.comment_id;
+
         const commentText =
           value.text ||
           value.message ||
           "";
+
+        console.log(
+          "INSTAGRAM COMMENT:",
+          JSON.stringify({
+            commenterId,
+            commentId,
+            commentText
+          })
+        );
 
         if (!commenterId) {
           console.log(
@@ -121,29 +213,67 @@ export default async function handler(req, res) {
           continue;
         }
 
-        console.log(
-          "INSTAGRAM COMMENT:",
-          commenterId,
-          commentText
-        );
+        /*
+        ---------------------------------------------
+        1. PUBLIC COMMENT REPLY
+        ---------------------------------------------
+        */
 
-        // Variant A:
-        // HƏR comment DMA flow-u başladır.
-        await startDmaFlow(
-          commenterId,
-          commentText || "Instagram comment"
-        );
+        if (commentId) {
+          try {
+            await replyToComment(
+              commentId
+            );
+          } catch (error) {
+            /*
+            Public reply alınmasa belə
+            DM flow-u işləməyə davam etsin.
+            */
+            console.error(
+              "PUBLIC COMMENT REPLY FAILED:",
+              error
+            );
+          }
+        }
+
+        /*
+        ---------------------------------------------
+        2. DMA DM FLOW
+        ---------------------------------------------
+        */
+
+        try {
+          await startDmaFlow(
+            commenterId,
+            commentText ||
+              "Instagram comment"
+          );
+        } catch (error) {
+          console.error(
+            "COMMENT DMA FLOW ERROR:",
+            error
+          );
+        }
       }
     }
 
-    return res.status(200).send("EVENT_RECEIVED");
+    return res
+      .status(200)
+      .send("EVENT_RECEIVED");
 
   } catch (error) {
+
     console.error(
       "Webhook error:",
       error
     );
 
-    return res.status(200).send("EVENT_RECEIVED");
+    /*
+    Meta event-i retry edib
+    duplicate mesaj yaratmasın.
+    */
+    return res
+      .status(200)
+      .send("EVENT_RECEIVED");
   }
 }
