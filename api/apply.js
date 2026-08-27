@@ -239,31 +239,30 @@ export default async function handler(req, res) {
        ELIGIBILITY
     ================================================= */
 
-    const eligibilityReasons = [];
+const eligibilityReasons = [];
 
-    if (age < 18 || age > 35) {
-      eligibilityReasons.push(
-        "Yaş 18–35 aralığında deyil."
-      );
-    }
+if (age < 18 || age > 35) {
+  eligibilityReasons.push(
+    "AGE_NOT_ELIGIBLE"
+  );
+}
 
-    if (studentStatus === true) {
-      eligibilityReasons.push(
-        "Hazırda tələbə statusu mövcuddur."
-      );
-    }
+if (studentStatus === true) {
+  eligibilityReasons.push(
+    "STUDENT_STATUS"
+  );
+}
 
-    if (activeVoenStatus === true) {
-      eligibilityReasons.push(
-        "Adınıza aktiv VÖEN mövcuddur."
-      );
-    }
+if (activeVoenStatus === true) {
+  eligibilityReasons.push(
+    "ACTIVE_VOEN"
+  );
+}
 
-    if (dmaRegisteredStatus === false) {
-      eligibilityReasons.push(
-        "DMA-da işsiz kimi qeydiyyat yoxdur."
-      );
-    }
+const eligibilityStatus =
+  eligibilityReasons.length === 0
+    ? "eligible"
+    : "ineligible";
 
     const eligibilityStatus =
       eligibilityReasons.length === 0
