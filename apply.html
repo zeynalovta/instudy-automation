@@ -632,39 +632,28 @@
       </div>
 
       <!-- INELIGIBLE -->
-      <div
-        id="ineligibleSection"
-        class="ineligible"
-      >
+<div
+  id="ineligibleSection"
+  class="ineligible"
+>
+  <div class="success-icon">
+    ✅
+  </div>
 
-        <div class="success-icon">
-          ℹ️
-        </div>
+  <h2>
+    Təşəkkür edirik!
+  </h2>
 
-        <h2>
-          Qeydiyyatınız qəbul edildi
-        </h2>
+  <p>
+    Müraciətiniz uğurla qeydə alındı.
+  </p>
 
-        <p>
-          Daxil etdiyiniz məlumatlara əsasən hazırda proqramın
-          ilkin uyğunluq şərtlərindən biri və ya bir neçəsi təmin edilmir.
-        </p>
-
-        <div class="result-box">
-
-          <strong>
-            Uyğunluq nəticəsi:
-          </strong>
-
-          <ul id="reasonList"></ul>
-
-        </div>
-
-        <p style="margin-top:20px; color:#667085;">
-          Məlumatlarınız sistemdə saxlanılıb.
-        </p>
-
-      </div>
+  <p style="margin-top:14px; color:#667085;">
+    INSTUDY komandası tərəfindən təqdim etdiyiniz məlumatlar
+    nəzərdən keçiriləcək. Növbəti mərhələlərlə bağlı ehtiyac
+    yarandığı halda sizinlə əlaqə saxlanılacaq.
+  </p>
+</div>
 
     </div>
   </main>
@@ -957,41 +946,25 @@
             "none";
 
 
-          if (
-            data.eligibility_status ===
-            "eligible"
-          ) {
+if (data.eligibility_status === "eligible") {
 
-            successSection.style.display =
-              "block";
+  window.location.href =
+    `/exam.html` +
+    `?registration_id=${encodeURIComponent(
+      data.registration_id
+    )}` +
+    `&program=${encodeURIComponent(
+      data.program
+    )}`;
 
-          } else {
+  return;
 
-            ineligibleSection.style.display =
-              "block";
+}
 
-            reasonList.innerHTML = "";
-
-            (
-              data.eligibility_reasons ||
-              []
-            ).forEach(
-              (reason) => {
-
-                const li =
-                  document.createElement(
-                    "li"
-                  );
-
-                li.textContent =
-                  reason;
-
-                reasonList.appendChild(
-                  li
-                );
-              }
-            );
-          }
+// İlkin şərtlərə uyğun olmayan istifadəçi
+// səbəbi görmür.
+formSection.style.display = "none";
+ineligibleSection.style.display = "block";
 
 
         } catch (error) {
