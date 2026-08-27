@@ -95,8 +95,12 @@ export default async function handler(req, res) {
       instagram_username
     } = req.body || {};
 
-    const cleanName = cleanText(full_name);
-    const cleanFatherName = cleanText(father_name);
+    const cleanName =
+      cleanText(full_name);
+
+    const cleanFatherName =
+      cleanText(father_name);
+
     const cleanFin =
       cleanText(fin).toUpperCase();
 
@@ -239,30 +243,34 @@ export default async function handler(req, res) {
        ELIGIBILITY
     ================================================= */
 
-const eligibilityReasons = [];
+    const eligibilityReasons = [];
 
-if (age < 18 || age > 35) {
-  eligibilityReasons.push(
-    "AGE_NOT_ELIGIBLE"
-  );
-}
+    if (age < 18 || age > 35) {
+      eligibilityReasons.push(
+        "AGE_NOT_ELIGIBLE"
+      );
+    }
 
-if (studentStatus === true) {
-  eligibilityReasons.push(
-    "STUDENT_STATUS"
-  );
-}
+    if (studentStatus === true) {
+      eligibilityReasons.push(
+        "STUDENT_STATUS"
+      );
+    }
 
-if (activeVoenStatus === true) {
-  eligibilityReasons.push(
-    "ACTIVE_VOEN"
-  );
-}
+    if (activeVoenStatus === true) {
+      eligibilityReasons.push(
+        "ACTIVE_VOEN"
+      );
+    }
 
-const eligibilityStatus =
-  eligibilityReasons.length === 0
-    ? "eligible"
-    : "ineligible";
+    /*
+      DMA-da işsiz kimi qeydiyyatda olmamaq
+      imtahan mərhələsinə keçidi bloklamır.
+
+      Hal-hazırda işləyib-işləməməsi və
+      son 1 ildə DMA kursuna qatılıb-qatılmaması
+      da hazırda yalnız məlumat kimi saxlanılır.
+    */
 
     const eligibilityStatus =
       eligibilityReasons.length === 0
@@ -393,7 +401,7 @@ const eligibilityStatus =
       next_step:
         eligibilityStatus === "eligible"
           ? "exam_slot_selection"
-          : "not_eligible"
+          : "thank_you"
     });
 
   } catch (error) {
