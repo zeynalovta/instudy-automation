@@ -6,7 +6,8 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   />
-  <title>INSTUDY DMA Qeydiyyat</title>
+
+  <title>INSTUDY — DMA Qeydiyyat</title>
 
   <style>
     * {
@@ -21,26 +22,57 @@
     }
 
     .container {
-      width: min(100% - 32px, 620px);
-      margin: 40px auto;
+      width: min(100% - 32px, 680px);
+      margin: 36px auto;
     }
 
     .card {
       background: #fff;
-      border-radius: 18px;
-      padding: 28px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.08);
     }
 
     h1 {
-      margin-top: 0;
-      font-size: 28px;
+      margin: 0 0 10px;
+      font-size: 30px;
     }
 
     .subtitle {
       color: #667085;
-      line-height: 1.5;
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+
+    .progress {
+      display: flex;
+      gap: 8px;
       margin-bottom: 28px;
+    }
+
+    .progress-step {
+      height: 6px;
+      flex: 1;
+      border-radius: 99px;
+      background: #e4e7ec;
+    }
+
+    .progress-step.active {
+      background: #172033;
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    .step-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 20px;
     }
 
     .field {
@@ -54,147 +86,511 @@
     }
 
     input,
-    select {
+    select,
+    textarea {
       width: 100%;
-      min-height: 48px;
-      padding: 12px 14px;
+      min-height: 50px;
       border: 1px solid #d0d5dd;
-      border-radius: 10px;
+      border-radius: 11px;
+      padding: 12px 14px;
       font-size: 16px;
       background: #fff;
     }
 
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
     input:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
       outline: none;
-      border-color: #667085;
+      border-color: #172033;
+    }
+
+    .radio-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .radio-option {
+      border: 1px solid #d0d5dd;
+      border-radius: 11px;
+      padding: 14px;
+      cursor: pointer;
+    }
+
+    .radio-option input {
+      width: auto;
+      min-height: auto;
+      margin-right: 8px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
     }
 
     button {
-      width: 100%;
       min-height: 50px;
       border: 0;
-      border-radius: 10px;
+      border-radius: 11px;
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
+      padding: 0 20px;
+    }
+
+    .primary {
       background: #172033;
       color: #fff;
+      flex: 1;
+    }
+
+    .secondary {
+      background: #eef1f6;
+      color: #172033;
     }
 
     button:disabled {
-      opacity: 0.6;
+      opacity: .5;
       cursor: not-allowed;
     }
 
     .error {
       display: none;
-      margin-top: 16px;
-      padding: 12px;
-      border-radius: 8px;
+      margin-top: 18px;
+      padding: 13px;
+      border-radius: 10px;
       background: #fff1f1;
       color: #b42318;
     }
 
-    .success {
+    .success,
+    .ineligible {
       display: none;
       text-align: center;
+      padding: 12px 0;
     }
 
-    .success h2 {
-      font-size: 26px;
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
     }
 
-    .success p {
-      color: #667085;
-      line-height: 1.5;
+    .result-box {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 14px;
+      background: #f5f7fb;
+      text-align: left;
+    }
+
+    .result-box ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    @media (max-width: 520px) {
+      .card {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .radio-group {
+        grid-template-columns: 1fr;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 
 <body>
+
   <main class="container">
     <div class="card">
 
-      <div id="registrationSection">
+      <div id="formSection">
+
         <h1>DMA proqramına qeydiyyat</h1>
 
         <p class="subtitle">
           Məlumatlarınızı düzgün daxil edin.
-          Qeydiyyatı tamamladıqdan sonra imtahan vaxtını
-          özünüz seçə biləcəksiniz.
+          Qeydiyyat tamamlandıqdan sonra uyğunluğunuz yoxlanılacaq
+          və uyğun olduğunuz halda imtahan vaxtını özünüz seçə biləcəksiniz.
         </p>
+
+        <div class="progress">
+          <div class="progress-step active"></div>
+          <div class="progress-step"></div>
+          <div class="progress-step"></div>
+        </div>
 
         <form id="registrationForm">
 
-          <div class="field">
-            <label for="full_name">Ad və soyad</label>
-            <input
-              id="full_name"
-              name="full_name"
-              type="text"
-              autocomplete="name"
-              required
-              placeholder="Ad Soyad"
-            />
-          </div>
+          <!-- STEP 1 -->
+          <section class="step active">
 
-          <div class="field">
-            <label for="phone">Mobil nömrə</label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              autocomplete="tel"
-              required
-              placeholder="050 000 00 00"
-            />
-          </div>
+            <div class="step-title">
+              Şəxsi məlumatlar
+            </div>
 
-          <div class="field">
-            <label for="program">Təlim istiqaməti</label>
+            <div class="field">
+              <label for="full_name">
+                Ad və soyad
+              </label>
+              <input
+                id="full_name"
+                type="text"
+                required
+                placeholder="Ad Soyad"
+              />
+            </div>
 
-            <select
-              id="program"
-              name="program"
-              required
-            >
-              <option value="">
-                Təlimi seçin
-              </option>
+            <div class="field">
+              <label for="father_name">
+                Ata adı
+              </label>
+              <input
+                id="father_name"
+                type="text"
+                required
+                placeholder="Ata adı"
+              />
+            </div>
 
-              <option value="data">
-                Data Analitika
-              </option>
+            <div class="field">
+              <label for="fin">
+                FİN
+              </label>
+              <input
+                id="fin"
+                type="text"
+                required
+                maxlength="10"
+                placeholder="FİN kod"
+              />
+            </div>
 
-              <option value="frontend">
-                Frontend Developer
-              </option>
+            <div class="field">
+              <label for="birth_date">
+                Doğum tarixi
+              </label>
+              <input
+                id="birth_date"
+                type="date"
+                required
+              />
+            </div>
 
-              <option value="backend">
-                Backend Developer
-              </option>
+            <div class="field">
+              <label for="phone">
+                Əlaqə nömrəsi (WhatsApp)
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                required
+                placeholder="050 000 00 00"
+              />
+            </div>
 
-              <option value="hr">
-                HR
-              </option>
+            <div class="field">
+              <label for="address">
+                Faktiki yaşadığınız ünvan
+              </label>
+              <textarea
+                id="address"
+                required
+                placeholder="Şəhər, rayon, ünvan"
+              ></textarea>
+            </div>
 
-              <option value="computer_operator">
-                Kompüter Operatoru
-              </option>
+            <div class="buttons">
+              <button
+                type="button"
+                class="primary"
+                onclick="nextStep()"
+              >
+                Davam et
+              </button>
+            </div>
 
-              <option value="accounting">
-                Mühasibatlıq
-              </option>
-            </select>
-          </div>
+          </section>
 
-          <button
-            id="submitButton"
-            type="submit"
-          >
-            Qeydiyyatı tamamla
-          </button>
+          <!-- STEP 2 -->
+          <section class="step">
+
+            <div class="step-title">
+              Təlim və təhsil
+            </div>
+
+            <div class="field">
+              <label for="program">
+                İştirak etmək istədiyiniz layihə
+              </label>
+
+              <select
+                id="program"
+                required
+              >
+                <option value="">
+                  Təlimi seçin
+                </option>
+
+                <option value="computer_operator">
+                  Ofis proqramları / Kompüter Operatoru
+                </option>
+
+                <option value="accounting">
+                  Mühasibatlıq
+                </option>
+
+                <option value="hr">
+                  HR
+                </option>
+
+                <option value="data">
+                  Data Analitika
+                </option>
+
+                <option value="frontend">
+                  Frontend Developer
+                </option>
+
+                <option value="backend">
+                  Backend Developer
+                </option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="education_level">
+                Təhsiliniz
+              </label>
+
+              <select
+                id="education_level"
+                required
+              >
+                <option value="">
+                  Təhsil səviyyəsini seçin
+                </option>
+
+                <option value="secondary">
+                  Orta
+                </option>
+
+                <option value="vocational">
+                  Orta ixtisas (peşə)
+                </option>
+
+                <option value="bachelor">
+                  Bakalavr
+                </option>
+
+                <option value="master">
+                  Magistr
+                </option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>
+                Hal-hazırda tələbəsinizmi?
+              </label>
+
+              <div class="radio-group">
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="is_student"
+                    value="true"
+                    required
+                  />
+                  Bəli
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="is_student"
+                    value="false"
+                  />
+                  Xeyr
+                </label>
+
+              </div>
+            </div>
+
+            <div class="buttons">
+
+              <button
+                type="button"
+                class="secondary"
+                onclick="prevStep()"
+              >
+                Geri
+              </button>
+
+              <button
+                type="button"
+                class="primary"
+                onclick="nextStep()"
+              >
+                Davam et
+              </button>
+
+            </div>
+
+          </section>
+
+          <!-- STEP 3 -->
+          <section class="step">
+
+            <div class="step-title">
+              DMA uyğunluğu
+            </div>
+
+            <div class="field">
+              <label>
+                Hal-hazırda işləyirsinizmi?
+              </label>
+
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="is_employed"
+                    value="true"
+                    required
+                  />
+                  Bəli
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="is_employed"
+                    value="false"
+                  />
+                  Xeyr
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                Adınıza aktiv VÖEN varmı?
+              </label>
+
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="has_active_voen"
+                    value="true"
+                    required
+                  />
+                  Bəli
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="has_active_voen"
+                    value="false"
+                  />
+                  Xeyr
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                DMA-da işsiz kimi qeydiyyatdasınızmı?
+              </label>
+
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="dma_unemployed_registered"
+                    value="true"
+                    required
+                  />
+                  Bəli
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="dma_unemployed_registered"
+                    value="false"
+                  />
+                  Xeyr
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>
+                Son 1 ildə DMA xətti ilə hər hansı kursa qatılmısınızmı?
+              </label>
+
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="attended_dma_course_last_year"
+                    value="true"
+                    required
+                  />
+                  Bəli
+                </label>
+
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="attended_dma_course_last_year"
+                    value="false"
+                  />
+                  Xeyr
+                </label>
+              </div>
+            </div>
+
+            <div class="buttons">
+
+              <button
+                type="button"
+                class="secondary"
+                onclick="prevStep()"
+              >
+                Geri
+              </button>
+
+              <button
+                id="submitButton"
+                type="submit"
+                class="primary"
+              >
+                Qeydiyyatı tamamla
+              </button>
+
+            </div>
+
+          </section>
 
           <div
             id="errorBox"
@@ -202,30 +598,86 @@
           ></div>
 
         </form>
+
       </div>
 
+      <!-- ELIGIBLE -->
       <div
         id="successSection"
         class="success"
       >
-        <h2>Qeydiyyat tamamlandı ✅</h2>
+
+        <div class="success-icon">
+          ✅
+        </div>
+
+        <h2>
+          Qeydiyyatınız tamamlandı
+        </h2>
 
         <p>
-          İndi imtahan üçün uyğun vaxtı seçə bilərsiniz.
+          İlkin tələblərə uyğunsunuz.
+          İndi imtahan vaxtını seçə bilərsiniz.
         </p>
 
         <button
           id="examButton"
           type="button"
+          class="primary"
+          style="width:100%; margin-top:18px;"
         >
           İmtahan vaxtını seç
         </button>
+
+      </div>
+
+      <!-- INELIGIBLE -->
+      <div
+        id="ineligibleSection"
+        class="ineligible"
+      >
+
+        <div class="success-icon">
+          ℹ️
+        </div>
+
+        <h2>
+          Qeydiyyatınız qəbul edildi
+        </h2>
+
+        <p>
+          Daxil etdiyiniz məlumatlara əsasən hazırda proqramın
+          ilkin uyğunluq şərtlərindən biri və ya bir neçəsi təmin edilmir.
+        </p>
+
+        <div class="result-box">
+
+          <strong>
+            Uyğunluq nəticəsi:
+          </strong>
+
+          <ul id="reasonList"></ul>
+
+        </div>
+
+        <p style="margin-top:20px; color:#667085;">
+          Məlumatlarınız sistemdə saxlanılıb.
+        </p>
+
       </div>
 
     </div>
   </main>
 
+
   <script>
+
+    const steps =
+      document.querySelectorAll(".step");
+
+    const progressSteps =
+      document.querySelectorAll(".progress-step");
+
     const form =
       document.getElementById("registrationForm");
 
@@ -235,20 +687,32 @@
     const errorBox =
       document.getElementById("errorBox");
 
-    const registrationSection =
-      document.getElementById("registrationSection");
+    const formSection =
+      document.getElementById("formSection");
 
     const successSection =
       document.getElementById("successSection");
 
+    const ineligibleSection =
+      document.getElementById("ineligibleSection");
+
     const examButton =
       document.getElementById("examButton");
+
+    const reasonList =
+      document.getElementById("reasonList");
+
+
+    let currentStep = 0;
 
     let registrationId = null;
     let selectedProgram = null;
 
+
     const params =
-      new URLSearchParams(window.location.search);
+      new URLSearchParams(
+        window.location.search
+      );
 
     const instagramUserId =
       params.get("u");
@@ -256,65 +720,231 @@
     const instagramUsername =
       params.get("username");
 
+
+    function showStep(index) {
+
+      steps.forEach(
+        (step, stepIndex) => {
+          step.classList.toggle(
+            "active",
+            stepIndex === index
+          );
+        }
+      );
+
+      progressSteps.forEach(
+        (item, stepIndex) => {
+          item.classList.toggle(
+            "active",
+            stepIndex <= index
+          );
+        }
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+
+
+    function validateCurrentStep() {
+
+      const current =
+        steps[currentStep];
+
+      const fields =
+        current.querySelectorAll(
+          "input, select, textarea"
+        );
+
+      for (const field of fields) {
+
+        if (!field.checkValidity()) {
+          field.reportValidity();
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+
+    function nextStep() {
+
+      if (!validateCurrentStep()) {
+        return;
+      }
+
+      if (
+        currentStep <
+        steps.length - 1
+      ) {
+        currentStep++;
+        showStep(currentStep);
+      }
+    }
+
+
+    function prevStep() {
+
+      if (currentStep > 0) {
+        currentStep--;
+        showStep(currentStep);
+      }
+    }
+
+
+    function getRadioValue(name) {
+
+      const element =
+        document.querySelector(
+          `input[name="${name}"]:checked`
+        );
+
+      if (!element) {
+        return null;
+      }
+
+      return element.value;
+    }
+
+
     form.addEventListener(
       "submit",
       async (event) => {
+
         event.preventDefault();
 
-        errorBox.style.display = "none";
-        submitButton.disabled = true;
+        if (!validateCurrentStep()) {
+          return;
+        }
+
+        errorBox.style.display =
+          "none";
+
+        submitButton.disabled =
+          true;
+
         submitButton.textContent =
           "Qeydiyyat aparılır...";
 
+
         try {
-          const fullName =
-            document
-              .getElementById("full_name")
-              .value
-              .trim();
 
-          const phone =
-            document
-              .getElementById("phone")
-              .value
-              .trim();
+          const payload = {
 
-          const program =
-            document
-              .getElementById("program")
-              .value;
+            full_name:
+              document
+                .getElementById("full_name")
+                .value
+                .trim(),
+
+            father_name:
+              document
+                .getElementById("father_name")
+                .value
+                .trim(),
+
+            fin:
+              document
+                .getElementById("fin")
+                .value
+                .trim(),
+
+            birth_date:
+              document
+                .getElementById("birth_date")
+                .value,
+
+            phone:
+              document
+                .getElementById("phone")
+                .value
+                .trim(),
+
+            address:
+              document
+                .getElementById("address")
+                .value
+                .trim(),
+
+            program:
+              document
+                .getElementById("program")
+                .value,
+
+            education_level:
+              document
+                .getElementById("education_level")
+                .value,
+
+            is_student:
+              getRadioValue(
+                "is_student"
+              ),
+
+            is_employed:
+              getRadioValue(
+                "is_employed"
+              ),
+
+            has_active_voen:
+              getRadioValue(
+                "has_active_voen"
+              ),
+
+            dma_unemployed_registered:
+              getRadioValue(
+                "dma_unemployed_registered"
+              ),
+
+            attended_dma_course_last_year:
+              getRadioValue(
+                "attended_dma_course_last_year"
+              ),
+
+            instagram_user_id:
+              instagramUserId || null,
+
+            instagram_username:
+              instagramUsername || null
+          };
+
 
           const response =
-            await fetch("/api/apply", {
-              method: "POST",
+            await fetch(
+              "/api/apply",
+              {
+                method: "POST",
 
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
 
-              body: JSON.stringify({
-                full_name: fullName,
-                phone,
-                program,
+                body:
+                  JSON.stringify(
+                    payload
+                  )
+              }
+            );
 
-                instagram_user_id:
-                  instagramUserId || null,
-
-                instagram_username:
-                  instagramUsername || null
-              })
-            });
 
           const data =
             await response.json();
 
-          if (!response.ok || !data.success) {
+
+          if (
+            !response.ok ||
+            !data.success
+          ) {
             throw new Error(
               data.error ||
               "Qeydiyyat zamanı xəta baş verdi."
             );
           }
+
 
           registrationId =
             data.registration_id;
@@ -322,35 +952,81 @@
           selectedProgram =
             data.program;
 
-          registrationSection.style.display =
+
+          formSection.style.display =
             "none";
 
-          successSection.style.display =
-            "block";
+
+          if (
+            data.eligibility_status ===
+            "eligible"
+          ) {
+
+            successSection.style.display =
+              "block";
+
+          } else {
+
+            ineligibleSection.style.display =
+              "block";
+
+            reasonList.innerHTML = "";
+
+            (
+              data.eligibility_reasons ||
+              []
+            ).forEach(
+              (reason) => {
+
+                const li =
+                  document.createElement(
+                    "li"
+                  );
+
+                li.textContent =
+                  reason;
+
+                reasonList.appendChild(
+                  li
+                );
+              }
+            );
+          }
+
 
         } catch (error) {
+
           errorBox.textContent =
             error.message;
 
           errorBox.style.display =
             "block";
 
+
         } finally {
-          submitButton.disabled = false;
+
+          submitButton.disabled =
+            false;
+
           submitButton.textContent =
             "Qeydiyyatı tamamla";
         }
       }
     );
 
+
     examButton.addEventListener(
       "click",
       () => {
-        if (!registrationId || !selectedProgram) {
+
+        if (
+          !registrationId ||
+          !selectedProgram
+        ) {
           return;
         }
 
-        const url =
+        window.location.href =
           `/exam.html` +
           `?registration_id=${encodeURIComponent(
             registrationId
@@ -358,10 +1034,13 @@
           `&program=${encodeURIComponent(
             selectedProgram
           )}`;
-
-        window.location.href = url;
       }
     );
+
+
+    showStep(0);
+
   </script>
+
 </body>
 </html>
