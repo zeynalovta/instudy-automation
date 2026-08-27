@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>INSTUDY — İmtahan vaxtı</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    .container {
+      width: min(100% - 32px, 650px);
+      margin: 40px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #667085;
+      line-height: 1.5;
+      margin-bottom: 25px;
+    }
+
+    .slot {
+      border: 2px solid #eaecf0;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .slot:hover {
+      border-color: #98a2b3;
+    }
+
+    .slot.selected {
+      border-color: #172033;
+      background: #f8f9fc;
+    }
+
+    .slot-date {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .slot-time {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .available {
+      margin-top: 7px;
+      color: #667085;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 18px;
+      border: 0;
+      border-radius: 11px;
+      background: #172033;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .loading,
+    .empty,
+    .error {
+      padding: 20px;
+      text-align: center;
+      color: #667085;
+    }
+
+    .error {
+      color: #b42318;
+    }
+
+    .success {
+      display: none;
+      text-align: center;
+      padding: 15px 0;
+    }
+
+    .success-icon {
+      font-size: 48px;
+    }
+
+    .success h2 {
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+
+    .confirmation {
+      margin-top: 22px;
+      background: #f5f7fb;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .confirmation-date {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .confirmation-time {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <div class="card">
+
+      <div id="selectionSection">
+
+        <h1>İmtahan vaxtını seçin</h1>
+
+        <p class="subtitle">
+          Sizə uyğun tarix və saatı seçin.
+          Seçiminizi təsdiqlədikdən sonra yeriniz rezerv olunacaq.
+        </p>
+
+        <div
+          id="slotsContainer"
+          class="loading"
+        >
+          İmtahan vaxtları yüklənir...
+        </div>
+
+        <button
+          id="confirmButton"
+          disabled
+        >
+          Seçimi təsdiqlə
+        </button>
+
+        <div
+          id="errorBox"
+          class="error"
+          style="display:none"
+        ></div>
+
+      </div>
+
+
+      <div
+        id="successSection"
+        class="success"
+      >
+
+        <div class="success-icon">
+          ✅
+        </div>
+
+        <h2>
+          İmtahan vaxtınız təsdiqləndi
+        </h2>
+
+        <p>
+          İmtahana aşağıda göstərilən tarix və saatda yaxınlaşın.
+        </p>
+
+        <div class="confirmation">
+
+          <div
+            id="confirmedDate"
+            class="confirmation-date"
+          ></div>
+
+          <div
+            id="confirmedTime"
+            class="confirmation-time"
+          ></div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <script>
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const registrationId =
+      params.get("registration_id");
+
+    const program =
+      params.get("program");
+
+
+    const slotsContainer =
+      document.getElementById(
+        "slotsContainer"
+      );
+
+    const confirmButton =
+      document.getElementById(
+        "confirmButton"
+      );
+
+    const errorBox =
+      document.getElementById(
+        "errorBox"
+      );
+
+    const selectionSection =
+      document.getElementById(
+        "selectionSection"
+      );
+
+    const successSection =
+      document.getElementById(
+        "successSection"
+      );
+
+
+    let selectedSlotId = null;
+
+
+    function formatDate(dateString) {
+
+      const date =
+        new Date(
+          dateString + "T00:00:00"
+        );
+
+      return new Intl.DateTimeFormat(
+        "az-AZ",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        }
+      ).format(date);
+    }
+
+
+    function formatTime(timeString) {
+      return timeString
+        .split(":")
+        .slice(0,2)
+        .join(":");
+    }
+
+
+    async function loadSlots() {
+
+      if (!registrationId || !program) {
+
+        slotsContainer.innerHTML =
+          "Qeydiyyat məlumatı tapılmadı.";
+
+        return;
+      }
+
+      try {
+
+        const response =
+          await fetch(
+            `/api/exam/slots?program=${encodeURIComponent(
+              program
+            )}`
+          );
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.success
+        ) {
+          throw new Error(
+            data.error ||
+            "İmtahan vaxtları yüklənmədi."
+          );
+        }
+
+
+        if (
+          !data.slots ||
+          data.slots.length === 0
+        ) {
+
+          slotsContainer.className =
+            "empty";
+
+          slotsContainer.innerHTML =
+            "Hazırda uyğun boş imtahan vaxtı yoxdur.";
+
+          confirmButton.style.display =
+            "none";
+
+          return;
+        }
+
+
+        slotsContainer.className = "";
+        slotsContainer.innerHTML = "";
+
+
+        data.slots.forEach(
+          (slot) => {
+
+            const element =
+              document.createElement("div");
+
+            element.className =
+              "slot";
+
+            element.innerHTML = `
+              <div class="slot-date">
+                ${formatDate(slot.exam_date)}
+              </div>
+
+              <div class="slot-time">
+                ${formatTime(slot.exam_time)}
+              </div>
+
+              <div class="available">
+                ${slot.available} boş yer
+              </div>
+            `;
+
+
+            element.addEventListener(
+              "click",
+              () => {
+
+                document
+                  .querySelectorAll(".slot")
+                  .forEach(
+                    (item) =>
+                      item.classList.remove(
+                        "selected"
+                      )
+                  );
+
+                element.classList.add(
+                  "selected"
+                );
+
+                selectedSlotId =
+                  slot.id;
+
+                confirmButton.disabled =
+                  false;
+
+                errorBox.style.display =
+                  "none";
+              }
+            );
+
+
+            slotsContainer.appendChild(
+              element
+            );
+          }
+        );
+
+
+      } catch (error) {
+
+        slotsContainer.className =
+          "error";
+
+        slotsContainer.textContent =
+          error.message;
+      }
+    }
+
+
+    confirmButton.addEventListener(
+      "click",
+      async () => {
+
+        if (!selectedSlotId) {
+          return;
+        }
+
+        confirmButton.disabled = true;
+
+        confirmButton.textContent =
+          "Rezerv olunur...";
+
+        errorBox.style.display =
+          "none";
+
+
+        try {
+
+          const response =
+            await fetch(
+              "/api/exam/book",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body: JSON.stringify({
+                  registration_id:
+                    registrationId,
+
+                  slot_id:
+                    selectedSlotId
+                })
+              }
+            );
+
+
+          const data =
+            await response.json();
+
+
+          if (
+            !response.ok ||
+            !data.success
+          ) {
+            throw new Error(
+              data.error ||
+              "İmtahan vaxtını rezerv etmək mümkün olmadı."
+            );
+          }
+
+
+          selectionSection.style.display =
+            "none";
+
+          successSection.style.display =
+            "block";
+
+
+          document.getElementById(
+            "confirmedDate"
+          ).textContent =
+            formatDate(
+              data.exam_date
+            );
+
+
+          document.getElementById(
+            "confirmedTime"
+          ).textContent =
+            formatTime(
+              data.exam_time
+            );
+
+
+        } catch (error) {
+
+          errorBox.textContent =
+            error.message;
+
+          errorBox.style.display =
+            "block";
+
+          confirmButton.disabled =
+            false;
+
+          confirmButton.textContent =
+            "Seçimi təsdiqlə";
+
+          // Slot indicə dolubsa siyahını yenilə
+          await loadSlots();
+        }
+      }
+    );
+
+
+    loadSlots();
+
+  </script>
+
+</body>
+</html>
