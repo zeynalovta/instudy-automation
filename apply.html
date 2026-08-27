@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>INSTUDY DMA Qeydiyyat</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    .container {
+      width: min(100% - 32px, 620px);
+      margin: 40px auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #667085;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border: 1px solid #d0d5dd;
+      border-radius: 10px;
+      font-size: 16px;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #667085;
+    }
+
+    button {
+      width: 100%;
+      min-height: 50px;
+      border: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #172033;
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .error {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #fff1f1;
+      color: #b42318;
+    }
+
+    .success {
+      display: none;
+      text-align: center;
+    }
+
+    .success h2 {
+      font-size: 26px;
+    }
+
+    .success p {
+      color: #667085;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <div class="card">
+
+      <div id="registrationSection">
+        <h1>DMA proqramına qeydiyyat</h1>
+
+        <p class="subtitle">
+          Məlumatlarınızı düzgün daxil edin.
+          Qeydiyyatı tamamladıqdan sonra imtahan vaxtını
+          özünüz seçə biləcəksiniz.
+        </p>
+
+        <form id="registrationForm">
+
+          <div class="field">
+            <label for="full_name">Ad və soyad</label>
+            <input
+              id="full_name"
+              name="full_name"
+              type="text"
+              autocomplete="name"
+              required
+              placeholder="Ad Soyad"
+            />
+          </div>
+
+          <div class="field">
+            <label for="phone">Mobil nömrə</label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+              required
+              placeholder="050 000 00 00"
+            />
+          </div>
+
+          <div class="field">
+            <label for="program">Təlim istiqaməti</label>
+
+            <select
+              id="program"
+              name="program"
+              required
+            >
+              <option value="">
+                Təlimi seçin
+              </option>
+
+              <option value="data">
+                Data Analitika
+              </option>
+
+              <option value="frontend">
+                Frontend Developer
+              </option>
+
+              <option value="backend">
+                Backend Developer
+              </option>
+
+              <option value="hr">
+                HR
+              </option>
+
+              <option value="computer_operator">
+                Kompüter Operatoru
+              </option>
+
+              <option value="accounting">
+                Mühasibatlıq
+              </option>
+            </select>
+          </div>
+
+          <button
+            id="submitButton"
+            type="submit"
+          >
+            Qeydiyyatı tamamla
+          </button>
+
+          <div
+            id="errorBox"
+            class="error"
+          ></div>
+
+        </form>
+      </div>
+
+      <div
+        id="successSection"
+        class="success"
+      >
+        <h2>Qeydiyyat tamamlandı ✅</h2>
+
+        <p>
+          İndi imtahan üçün uyğun vaxtı seçə bilərsiniz.
+        </p>
+
+        <button
+          id="examButton"
+          type="button"
+        >
+          İmtahan vaxtını seç
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const form =
+      document.getElementById("registrationForm");
+
+    const submitButton =
+      document.getElementById("submitButton");
+
+    const errorBox =
+      document.getElementById("errorBox");
+
+    const registrationSection =
+      document.getElementById("registrationSection");
+
+    const successSection =
+      document.getElementById("successSection");
+
+    const examButton =
+      document.getElementById("examButton");
+
+    let registrationId = null;
+    let selectedProgram = null;
+
+    const params =
+      new URLSearchParams(window.location.search);
+
+    const instagramUserId =
+      params.get("u");
+
+    const instagramUsername =
+      params.get("username");
+
+    form.addEventListener(
+      "submit",
+      async (event) => {
+        event.preventDefault();
+
+        errorBox.style.display = "none";
+        submitButton.disabled = true;
+        submitButton.textContent =
+          "Qeydiyyat aparılır...";
+
+        try {
+          const fullName =
+            document
+              .getElementById("full_name")
+              .value
+              .trim();
+
+          const phone =
+            document
+              .getElementById("phone")
+              .value
+              .trim();
+
+          const program =
+            document
+              .getElementById("program")
+              .value;
+
+          const response =
+            await fetch("/api/apply", {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                full_name: fullName,
+                phone,
+                program,
+
+                instagram_user_id:
+                  instagramUserId || null,
+
+                instagram_username:
+                  instagramUsername || null
+              })
+            });
+
+          const data =
+            await response.json();
+
+          if (!response.ok || !data.success) {
+            throw new Error(
+              data.error ||
+              "Qeydiyyat zamanı xəta baş verdi."
+            );
+          }
+
+          registrationId =
+            data.registration_id;
+
+          selectedProgram =
+            data.program;
+
+          registrationSection.style.display =
+            "none";
+
+          successSection.style.display =
+            "block";
+
+        } catch (error) {
+          errorBox.textContent =
+            error.message;
+
+          errorBox.style.display =
+            "block";
+
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent =
+            "Qeydiyyatı tamamla";
+        }
+      }
+    );
+
+    examButton.addEventListener(
+      "click",
+      () => {
+        if (!registrationId || !selectedProgram) {
+          return;
+        }
+
+        const url =
+          `/exam.html` +
+          `?registration_id=${encodeURIComponent(
+            registrationId
+          )}` +
+          `&program=${encodeURIComponent(
+            selectedProgram
+          )}`;
+
+        window.location.href = url;
+      }
+    );
+  </script>
+</body>
+</html>
