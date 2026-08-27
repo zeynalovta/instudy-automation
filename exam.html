@@ -263,22 +263,27 @@
     let selectedSlotId = null;
 
 
-    function formatDate(dateString) {
+function formatDate(dateString) {
+  const months = [
+    "yanvar",
+    "fevral",
+    "mart",
+    "aprel",
+    "may",
+    "iyun",
+    "iyul",
+    "avqust",
+    "sentyabr",
+    "oktyabr",
+    "noyabr",
+    "dekabr"
+  ];
 
-      const date =
-        new Date(
-          dateString + "T00:00:00"
-        );
+  const [year, month, day] =
+    dateString.split("-").map(Number);
 
-      return new Intl.DateTimeFormat(
-        "az-AZ",
-        {
-          day: "numeric",
-          month: "long",
-          year: "numeric"
-        }
-      ).format(date);
-    }
+  return `${day} ${months[month - 1]} ${year}`;
+}
 
 
     function formatTime(timeString) {
