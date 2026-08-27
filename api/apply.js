@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase.js";
+import { syncRegistrationToGoogleSheets } from "../lib/google-sheets.js";
 
 const ALLOWED_PROGRAMS = [
   "data",
@@ -263,15 +264,6 @@ export default async function handler(req, res) {
       );
     }
 
-    /*
-      DMA-da işsiz kimi qeydiyyatda olmamaq
-      imtahan mərhələsinə keçidi bloklamır.
-
-      Hal-hazırda işləyib-işləməməsi və
-      son 1 ildə DMA kursuna qatılıb-qatılmaması
-      da hazırda yalnız məlumat kimi saxlanılır.
-    */
-
     const eligibilityStatus =
       eligibilityReasons.length === 0
         ? "eligible"
@@ -305,7 +297,7 @@ export default async function handler(req, res) {
     }
 
     /* ================================================
-       SAVE REGISTRATION
+       SAVE REGISTRATION TO SUPABASE
     ================================================= */
 
     const {
@@ -383,6 +375,99 @@ export default async function handler(req, res) {
       throw error;
     }
 
+    /* ================================================
+       GOOGLE SHEETS SYNC
+    ================================================= */
+
+    const sheetResult =
+      await syncRegistrationToGoogleSheets({
+        registration_id:
+          registration.id,
+
+        full_name:
+          registration.full_name,
+
+        father_name:
+          registration.father_name,
+
+        fin:
+          registration.fin,
+
+        birth_date:
+          registration.birth_date,
+
+        phone:
+          registration.phone,
+
+        program:
+          registration.program,
+
+        education_level:
+          registration.education_level,
+
+        is_student:
+          registration.is_student,
+
+        is_employed:
+          registration.is_employed,
+
+        has_active_voen:
+          registration.has_active_voen,
+
+        dma_unemployed_registered:
+          registration.dma_unemployed_registered,
+
+        attended_dma_course_last_year:
+          registration.attended_dma_course_last_year,
+
+        address:
+          registration.address,
+
+        eligibility_status:
+          registration.eligibility_status,
+
+        exam_date: "",
+        exam_time: "",
+        exam_status: "",
+
+        created_at:
+          registration.created_at,
+
+        instagram_username:
+          registration.instagram_username || ""
+      });
+
+    if (sheetResult.success) {
+      await supabase
+        .from("registrations")
+        .update({
+          sheets_sync_status:
+            "synced",
+
+          sheets_synced_at:
+            new Date().toISOString()
+        })
+        .eq(
+          "id",
+          registration.id
+        );
+    } else {
+      await supabase
+        .from("registrations")
+        .update({
+          sheets_sync_status:
+            "failed"
+        })
+        .eq(
+          "id",
+          registration.id
+        );
+    }
+
+    /* ================================================
+       RESPONSE
+    ================================================= */
+
     return res.status(200).json({
       success: true,
 
@@ -397,6 +482,11 @@ export default async function handler(req, res) {
 
       eligibility_reasons:
         eligibilityReasons,
+
+      sheets_sync_status:
+        sheetResult.success
+          ? "synced"
+          : "failed",
 
       next_step:
         eligibilityStatus === "eligible"
