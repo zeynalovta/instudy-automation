@@ -1,13 +1,17 @@
 import {
   hasDmaKeyword,
   startDmaFlow,
+  startDmaFlowFromComment,
   handlePostback
 } from "../../lib/dma-flow.js";
 
 import { supabase } from "../../lib/supabase.js";
 
-const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN;
-const INSTAGRAM_ACCOUNT_ID = process.env.INSTAGRAM_ACCOUNT_ID;
+const VERIFY_TOKEN =
+  process.env.META_VERIFY_TOKEN;
+
+const INSTAGRAM_ACCOUNT_ID =
+  process.env.INSTAGRAM_ACCOUNT_ID;
 
 const COMMENT_REPLIES = [
   "Məlumat göndərildi 📥",
@@ -17,7 +21,10 @@ const COMMENT_REPLIES = [
 
 function getRandomCommentReply() {
   return COMMENT_REPLIES[
-    Math.floor(Math.random() * COMMENT_REPLIES.length)
+    Math.floor(
+      Math.random() *
+      COMMENT_REPLIES.length
+    )
   ];
 }
 
@@ -26,23 +33,30 @@ function getRandomCommentReply() {
 ========================================================= */
 
 async function replyToComment(commentId) {
-  const message = getRandomCommentReply();
+  const message =
+    getRandomCommentReply();
 
   const response = await fetch(
     `https://graph.instagram.com/v26.0/${commentId}/replies`,
     {
       method: "POST",
+
       headers: {
-        Authorization: `Bearer ${process.env.INSTAGRAM_ACCESS_TOKEN}`,
-        "Content-Type": "application/json"
+        Authorization:
+          `Bearer ${process.env.INSTAGRAM_ACCESS_TOKEN}`,
+
+        "Content-Type":
+          "application/json"
       },
+
       body: JSON.stringify({
         message
       })
     }
   );
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   console.log(
     "COMMENT REPLY RESPONSE:",
@@ -62,11 +76,21 @@ async function replyToComment(commentId) {
    COMMENT DEDUPLICATION
 ========================================================= */
 
-async function isCommentAlreadyProcessed(commentId) {
-  const { data, error } = await supabase
-    .from("processed_instagram_comments")
+async function isCommentAlreadyProcessed(
+  commentId
+) {
+  const {
+    data,
+    error
+  } = await supabase
+    .from(
+      "processed_instagram_comments"
+    )
     .select("comment_id")
-    .eq("comment_id", commentId)
+    .eq(
+      "comment_id",
+      commentId
+    )
     .maybeSingle();
 
   if (error) {
@@ -82,16 +106,30 @@ async function markCommentProcessed(
   commentText
 ) {
   const { error } = await supabase
-    .from("processed_instagram_comments")
+    .from(
+      "processed_instagram_comments"
+    )
     .insert({
-      comment_id: commentId,
-      commenter_id: commenterId,
-      comment_text: commentText
+      comment_id:
+        commentId,
+
+      commenter_id:
+        commenterId,
+
+      comment_text:
+        commentText
     });
 
-  // Eyni comment paralel request-də artıq insert olunubsa,
-  // duplicate error-u ignore edirik.
-  if (error && error.code !== "23505") {
+  /*
+    Eyni comment paralel request-də
+    artıq insert olunubsa duplicate error-u
+    ignore edirik.
+  */
+
+  if (
+    error &&
+    error.code !== "23505"
+  ) {
     throw error;
   }
 }
@@ -100,30 +138,55 @@ async function markCommentProcessed(
    WEBHOOK
 ========================================================= */
 
-export default async function handler(req, res) {
+export default async function handler(
+  req,
+  res
+) {
 
   /* -------------------------------------------------------
      META VERIFICATION
   ------------------------------------------------------- */
 
   if (req.method === "GET") {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
+    const mode =
+      req.query["hub.mode"];
+
+    const token =
+      req.query[
+        "hub.verify_token"
+      ];
+
+    const challenge =
+      req.query[
+        "hub.challenge"
+      ];
 
     if (
       mode === "subscribe" &&
       token === VERIFY_TOKEN
     ) {
-      console.log("META WEBHOOK VERIFIED");
-      return res.status(200).send(challenge);
+      console.log(
+        "META WEBHOOK VERIFIED"
+      );
+
+      return res
+        .status(200)
+        .send(challenge);
     }
 
-    return res.status(403).send("Verification failed");
+    return res
+      .status(403)
+      .send(
+        "Verification failed"
+      );
   }
 
   if (req.method !== "POST") {
-    return res.status(405).send("Method not allowed");
+    return res
+      .status(405)
+      .send(
+        "Method not allowed"
+      );
   }
 
   try {
@@ -132,31 +195,52 @@ export default async function handler(req, res) {
       JSON.stringify(req.body)
     );
 
-    if (req.body.object !== "instagram") {
-      return res.status(200).send("EVENT_RECEIVED");
+    if (
+      req.body.object !==
+      "instagram"
+    ) {
+      return res
+        .status(200)
+        .send(
+          "EVENT_RECEIVED"
+        );
     }
 
-    for (const entry of req.body.entry || []) {
+    for (
+      const entry of
+      req.body.entry || []
+    ) {
 
       /* =====================================================
          DM / POSTBACK / STORY REPLY
       ===================================================== */
 
-      for (const event of entry.messaging || []) {
-        const senderId = event.sender?.id;
+      for (
+        const event of
+        entry.messaging || []
+      ) {
+        const senderId =
+          event.sender?.id;
 
         if (!senderId) {
           continue;
         }
 
-        // Öz bot mesajlarımız
-        if (event.message?.is_echo) {
+        /*
+          Öz bot mesajlarımız
+        */
+
+        if (
+          event.message?.is_echo
+        ) {
           continue;
         }
 
         /* ---------------- BUTTON ---------------- */
 
-        if (event.postback?.payload) {
+        if (
+          event.postback?.payload
+        ) {
           console.log(
             "POSTBACK:",
             senderId,
@@ -171,13 +255,17 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const text = event.message?.text || "";
+        const text =
+          event.message?.text || "";
 
         /* ---------------- STORY REPLY ---------------- */
 
-        const isStoryReply = Boolean(
-          event.message?.reply_to?.story
-        );
+        const isStoryReply =
+          Boolean(
+            event.message
+              ?.reply_to
+              ?.story
+          );
 
         if (isStoryReply) {
           console.log(
@@ -188,7 +276,8 @@ export default async function handler(req, res) {
 
           await startDmaFlow(
             senderId,
-            text || "Instagram Story Reply"
+            text ||
+              "Instagram Story Reply"
           );
 
           continue;
@@ -206,7 +295,9 @@ export default async function handler(req, res) {
           text
         );
 
-        if (hasDmaKeyword(text)) {
+        if (
+          hasDmaKeyword(text)
+        ) {
           await startDmaFlow(
             senderId,
             text
@@ -218,12 +309,19 @@ export default async function handler(req, res) {
          COMMENTS
       ===================================================== */
 
-      for (const change of entry.changes || []) {
-        if (change.field !== "comments") {
+      for (
+        const change of
+        entry.changes || []
+      ) {
+        if (
+          change.field !==
+          "comments"
+        ) {
           continue;
         }
 
-        const value = change.value || {};
+        const value =
+          change.value || {};
 
         const commenterId =
           value.from?.id ||
@@ -248,7 +346,10 @@ export default async function handler(req, res) {
           })
         );
 
-        if (!commenterId || !commentId) {
+        if (
+          !commenterId ||
+          !commentId
+        ) {
           console.log(
             "INVALID COMMENT EVENT:",
             JSON.stringify(value)
@@ -258,12 +359,14 @@ export default async function handler(req, res) {
         }
 
         /* ---------------------------------------------------
-           CRITICAL: öz comment/reply-larımızı ignore et
+           Öz comment/reply-larımızı ignore et
         --------------------------------------------------- */
 
         if (
           String(commenterId) ===
-          String(INSTAGRAM_ACCOUNT_ID)
+          String(
+            INSTAGRAM_ACCOUNT_ID
+          )
         ) {
           console.log(
             "IGNORING OWN COMMENT:",
@@ -274,11 +377,13 @@ export default async function handler(req, res) {
         }
 
         /* ---------------------------------------------------
-           CRITICAL: eyni comment yalnız 1 dəfə
+           Eyni comment yalnız 1 dəfə
         --------------------------------------------------- */
 
         const alreadyProcessed =
-          await isCommentAlreadyProcessed(commentId);
+          await isCommentAlreadyProcessed(
+            commentId
+          );
 
         if (alreadyProcessed) {
           console.log(
@@ -290,12 +395,9 @@ export default async function handler(req, res) {
         }
 
         /*
-          ƏVVƏL processed kimi qeyd edirik.
-          Sonra reply/DM göndəririk.
-
-          Bu vacibdir:
-          Meta eyni webhook-u paralel göndərsə belə
-          duplicate flow başlamasın.
+          Əvvəl processed kimi qeyd edirik.
+          Meta eyni event-i yenidən göndərsə,
+          duplicate flow yaranmır.
         */
 
         await markCommentProcessed(
@@ -307,7 +409,9 @@ export default async function handler(req, res) {
         /* ---------------- PUBLIC REPLY ---------------- */
 
         try {
-          await replyToComment(commentId);
+          await replyToComment(
+            commentId
+          );
         } catch (error) {
           console.error(
             "PUBLIC COMMENT REPLY FAILED:",
@@ -315,16 +419,19 @@ export default async function handler(req, res) {
           );
         }
 
-        /* ---------------- DM FLOW ---------------- */
+        /* ---------------- PRIVATE COMMENT MESSAGE ---------------- */
 
         try {
-          await startDmaFlow(
+          await startDmaFlowFromComment(
+            commentId,
             commenterId,
-            commentText || "Instagram comment"
+            commentText ||
+              "Instagram comment"
           );
+
         } catch (error) {
           console.error(
-            "COMMENT DMA FLOW ERROR:",
+            "COMMENT PRIVATE REPLY ERROR:",
             error
           );
         }
@@ -333,7 +440,9 @@ export default async function handler(req, res) {
 
     return res
       .status(200)
-      .send("EVENT_RECEIVED");
+      .send(
+        "EVENT_RECEIVED"
+      );
 
   } catch (error) {
     console.error(
@@ -343,6 +452,8 @@ export default async function handler(req, res) {
 
     return res
       .status(200)
-      .send("EVENT_RECEIVED");
+      .send(
+        "EVENT_RECEIVED"
+      );
   }
 }
