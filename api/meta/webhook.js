@@ -1,11 +1,23 @@
 import {
   hasDmaKeyword,
+  findMatchedKeyword,
   startDmaFlow,
   startDmaFlowFromComment,
   handlePostback
 } from "../../lib/dma-flow.js";
 
 import { supabase } from "../../lib/supabase.js";
+
+import {
+  eventsEnabled,
+  logEvents,
+  buildEvent,
+  buildIncomingEvents,
+  countRequestItems,
+  messagingTriggerKey,
+  parseInstagramError,
+  ctxMetadata
+} from "../../lib/events.js";
 
 const VERIFY_TOKEN =
   process.env.META_VERIFY_TOKEN;
@@ -135,6 +147,175 @@ async function markCommentProcessed(
 }
 
 /* =========================================================
+   EVENT TRACKING (Sprint 1A: measurement only)
+
+   Bu funksiyalar heç vaxt throw etmir və EVENTS_ENABLED=true
+   deyilsə heç nə etmir.
+========================================================= */
+
+async function captureIncomingEvents(
+  body,
+  requestId
+) {
+  if (!eventsEnabled()) {
+    return;
+  }
+
+  try {
+    await logEvents(
+      buildIncomingEvents(
+        body,
+        {
+          requestId,
+          findMatchedKeyword,
+          ownAccountId:
+            INSTAGRAM_ACCOUNT_ID
+        }
+      )
+    );
+
+  } catch (error) {
+    console.error(
+      "EVENT_CAPTURE_FAILED:",
+      error?.message
+    );
+  }
+}
+
+async function logPublicReplyEvent(
+  commenterId,
+  commentId,
+  outcome,
+  requestId
+) {
+  if (!eventsEnabled()) {
+    return;
+  }
+
+  try {
+    const ctx = {
+      requestId,
+      triggerKey: `cmt:${commentId}`,
+      entryPoint: "comment"
+    };
+
+    const replyId = outcome.data?.id ?? null;
+
+    await logEvents([
+      outcome.ok
+        ? buildEvent({
+            userId: commenterId,
+            type: "message_sent",
+            channel: "comment",
+
+            dedupeKey: replyId
+              ? `sent:${replyId}`
+              : null,
+
+            metadata: {
+              message_kind: "comment_public_reply",
+              api_message_id: replyId,
+              has_register_link: false,
+              ...ctxMetadata(ctx)
+            }
+          })
+        : buildEvent({
+            userId: commenterId,
+            type: "message_failed",
+            channel: "comment",
+
+            metadata: {
+              message_kind: "comment_public_reply",
+              ...parseInstagramError(outcome.error),
+              ...ctxMetadata(ctx)
+            }
+          })
+    ]);
+
+  } catch (error) {
+    console.error(
+      "EVENT_CAPTURE_FAILED:",
+      error?.message
+    );
+  }
+}
+
+async function logCommentFlowFailure(
+  commenterId,
+  commentId,
+  error,
+  requestId
+) {
+  if (!eventsEnabled()) {
+    return;
+  }
+
+  try {
+    await logEvents([
+      buildEvent({
+        userId: commenterId,
+        type: "message_failed",
+        channel: "comment",
+
+        metadata: {
+          message_kind: "comment_private_reply",
+          stage: "before_send",
+          ...parseInstagramError(error),
+
+          ...ctxMetadata({
+            requestId,
+            triggerKey: `cmt:${commentId}`,
+            entryPoint: "comment"
+          })
+        }
+      })
+    ]);
+
+  } catch (captureError) {
+    console.error(
+      "EVENT_CAPTURE_FAILED:",
+      captureError?.message
+    );
+  }
+}
+
+async function logWebhookAborted(
+  item,
+  error,
+  requestId,
+  remaining
+) {
+  if (
+    !eventsEnabled() ||
+    !item?.userId
+  ) {
+    return;
+  }
+
+  try {
+    await logEvents([
+      buildEvent({
+        userId: item.userId,
+        type: "webhook_aborted",
+
+        metadata: {
+          trigger_key: item.triggerKey ?? null,
+          remaining_events: remaining,
+          ...parseInstagramError(error),
+          request_id: requestId
+        }
+      })
+    ]);
+
+  } catch (captureError) {
+    console.error(
+      "EVENT_CAPTURE_FAILED:",
+      captureError?.message
+    );
+  }
+}
+
+/* =========================================================
    WEBHOOK
 ========================================================= */
 
@@ -189,6 +370,14 @@ export default async function handler(
       );
   }
 
+  const requestId =
+    req.headers?.["x-vercel-id"] ?? null;
+
+  let capturePromise = Promise.resolve();
+  let totalItems = 0;
+  let startedItems = 0;
+  let currentItem = null;
+
   try {
     console.log(
       "META WEBHOOK EVENT:",
@@ -206,6 +395,21 @@ export default async function handler(
         );
     }
 
+    /*
+      Gələn hadisələr axından ƏVVƏL başladılır, amma gözlənilmir:
+      bot cavabının gecikməsinə təsir etmir. Cavab göndərilməzdən
+      əvvəl tamamlanması təmin olunur. Axın xəta versə də
+      ölçmə hadisələri qeyd olunur.
+    */
+    capturePromise =
+      captureIncomingEvents(
+        req.body,
+        requestId
+      );
+
+    totalItems =
+      countRequestItems(req.body);
+
     for (
       const entry of
       req.body.entry || []
@@ -219,6 +423,16 @@ export default async function handler(
         const event of
         entry.messaging || []
       ) {
+        startedItems++;
+
+        currentItem = {
+          userId:
+            event.sender?.id ?? null,
+
+          triggerKey:
+            messagingTriggerKey(event)
+        };
+
         const senderId =
           event.sender?.id;
 
@@ -249,7 +463,12 @@ export default async function handler(
 
           await handlePostback(
             senderId,
-            event.postback.payload
+            event.postback.payload,
+            {
+              requestId,
+              triggerKey:
+                currentItem.triggerKey
+            }
           );
 
           continue;
@@ -277,7 +496,13 @@ export default async function handler(
           await startDmaFlow(
             senderId,
             text ||
-              "Instagram Story Reply"
+              "Instagram Story Reply",
+            {
+              requestId,
+              triggerKey:
+                currentItem.triggerKey,
+              entryPoint: "story_reply"
+            }
           );
 
           continue;
@@ -300,7 +525,13 @@ export default async function handler(
         ) {
           await startDmaFlow(
             senderId,
-            text
+            text,
+            {
+              requestId,
+              triggerKey:
+                currentItem.triggerKey,
+              entryPoint: "dm"
+            }
           );
         }
       }
@@ -313,6 +544,8 @@ export default async function handler(
         const change of
         entry.changes || []
       ) {
+        startedItems++;
+
         if (
           change.field !==
           "comments"
@@ -336,6 +569,15 @@ export default async function handler(
           value.text ||
           value.message ||
           "";
+
+        currentItem = {
+          userId:
+            commenterId ?? null,
+
+          triggerKey: commentId
+            ? `cmt:${commentId}`
+            : null
+        };
 
         console.log(
           "INSTAGRAM COMMENT:",
@@ -408,25 +650,51 @@ export default async function handler(
 
         /* ---------------- PUBLIC REPLY ---------------- */
 
+        const publicReply = {
+          ok: false,
+          data: null,
+          error: null
+        };
+
         try {
-          await replyToComment(
-            commentId
-          );
+          publicReply.data =
+            await replyToComment(
+              commentId
+            );
+
+          publicReply.ok = true;
         } catch (error) {
           console.error(
             "PUBLIC COMMENT REPLY FAILED:",
             error
           );
+
+          publicReply.error = error;
         }
 
+        await logPublicReplyEvent(
+          commenterId,
+          commentId,
+          publicReply,
+          requestId
+        );
+
         /* ---------------- PRIVATE COMMENT MESSAGE ---------------- */
+
+        const commentFlowCtx = {
+          requestId,
+          triggerKey:
+            `cmt:${commentId}`,
+          entryPoint: "comment"
+        };
 
         try {
           await startDmaFlowFromComment(
             commentId,
             commenterId,
             commentText ||
-              "Instagram comment"
+              "Instagram comment",
+            commentFlowCtx
           );
 
         } catch (error) {
@@ -434,9 +702,27 @@ export default async function handler(
             "COMMENT PRIVATE REPLY ERROR:",
             error
           );
+
+          // Göndəriş xətası dma-flow-da artıq qeyd olunub
+          // (eventLogged), göndəriş uğurlu olubsa sonradan gələn xəta
+          // (məsələn kontakt yenilənməsi) göndəriş xətası deyil.
+          // Yalnız göndərmədən ƏVVƏLKI xətalar burada qeyd olunur.
+          if (
+            !error?.eventLogged &&
+            !commentFlowCtx.sendSucceeded
+          ) {
+            await logCommentFlowFailure(
+              commenterId,
+              commentId,
+              error,
+              requestId
+            );
+          }
         }
       }
     }
+
+    await capturePromise;
 
     return res
       .status(200)
@@ -449,6 +735,18 @@ export default async function handler(
       "Webhook error:",
       error
     );
+
+    await logWebhookAborted(
+      currentItem,
+      error,
+      requestId,
+      Math.max(
+        0,
+        totalItems - startedItems
+      )
+    );
+
+    await capturePromise;
 
     return res
       .status(200)
