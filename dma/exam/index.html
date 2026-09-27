@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İmtahan tarixi seçimi | Learnup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f4f7f9;
+      color: #17232b;
+    }
+    .card {
+      width: min(100%, 560px);
+      background: #fff;
+      border: 1px solid #e1e8eb;
+      border-radius: 24px;
+      padding: 34px;
+      box-shadow: 0 20px 55px rgba(20, 46, 55, .10);
+    }
+    .brand { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+    .brand span { color: #168a74; }
+    .subtitle { color: #6c7a82; line-height: 1.6; margin-bottom: 24px; }
+    .message {
+      display: none; margin-bottom: 18px; padding: 13px 14px;
+      border-radius: 12px; font-size: 14px; line-height: 1.5;
+    }
+    .message.error { display: block; color: #9f3131; background: #fff1f1; border: 1px solid #ffd7d7; }
+    .message.success { display: block; color: #176b58; background: #eefaf6; border: 1px solid #ccece3; }
+    .message.info { display: block; color: #6d7b83; background: #f4f7f9; border: 1px solid #e1e8eb; }
+    .session {
+      display: flex; align-items: center; justify-content: space-between;
+      border: 1px solid #e1e8eb; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+    }
+    .session .when { font-weight: 700; }
+    .session .seats { color: #6c7a82; font-size: 13px; margin-top: 3px; }
+    button {
+      border: 0; border-radius: 12px; padding: 11px 16px;
+      background: #127663; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    .loading { text-align: center; color: #6c7a82; padding: 24px 0; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">Learn<span>up</span></div>
+    <p class="subtitle" id="subtitle">İmtahan tarixi seçimi yüklənir...</p>
+
+    <div id="message" class="message"></div>
+    <div id="sessionList"></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const subtitle = document.getElementById("subtitle");
+    const message = document.getElementById("message");
+    const sessionList = document.getElementById("sessionList");
+
+    function showMessage(type, text) {
+      message.className = "message " + type;
+      message.textContent = text;
+    }
+
+    function formatDateTime(value) {
+      return new Intl.DateTimeFormat("az-AZ", {
+        weekday: "long", day: "2-digit", month: "long", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      }).format(new Date(value));
+    }
+
+    function getApplicationId() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get("a");
+      const id = Number(raw);
+      return Number.isInteger(id) && id > 0 ? id : null;
+    }
+
+    async function bookSession(applicationId, sessionId, button) {
+      button.disabled = true;
+      button.textContent = "Rezerv edilir...";
+
+      const { data, error } = await client.rpc("book_exam_session", {
+        p_application_id: applicationId,
+        p_exam_session_id: sessionId,
+      });
+
+      if (error) {
+        console.error("Booking error:", error);
+        const messages = {
+          SESSION_FULL: "Təəssüf ki, bu sessiyada yer qalmadı. Başqa vaxt seç.",
+          PROGRAM_MISMATCH: "Bu sessiya sizin proqramınıza uyğun deyil.",
+          NOT_BOOKABLE: "Hazırkı statusunuz imtahan rezervasiyasına icazə vermir.",
+        };
+        const code = (error.message || "").match(/SESSION_FULL|PROGRAM_MISMATCH|NOT_BOOKABLE/)?.[0];
+        showMessage("error", messages[code] || "Rezervasiya alınmadı: " + error.message);
+        button.disabled = false;
+        button.textContent = "Seç";
+        return;
+      }
+
+      sessionList.innerHTML = "";
+      subtitle.textContent = "Rezervasiyanız təsdiqləndi!";
+      showMessage("success", "İmtahan tarixiniz uğurla rezerv edildi. Xatırlatma WhatsApp vasitəsilə göndəriləcək.");
+    }
+
+    async function loadSessions(applicationId, programId) {
+      const { data: sessions, error } = await client.rpc("list_available_exam_sessions", {
+        p_program_id: programId,
+      });
+
+      if (error) {
+        console.error("Sessions load error:", error);
+        showMessage("error", "İmtahan sessiyaları yüklənmədi.");
+        return;
+      }
+
+      if (!sessions || !sessions.length) {
+        showMessage("info", "Hazırda açıq imtahan sessiyası yoxdur. Tezliklə əlaqə saxlanılacaq.");
+        return;
+      }
+
+      sessionList.innerHTML = sessions.map(s => `
+        <div class="session">
+          <div>
+            <div class="when">${formatDateTime(s.starts_at)}</div>
+            <div class="seats">${s.available_seats} yer qalıb</div>
+          </div>
+          <button data-session-id="${s.id}">Seç</button>
+        </div>
+      `).join("");
+
+      sessionList.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => {
+          bookSession(applicationId, Number(button.dataset.sessionId), button);
+        });
+      });
+    }
+
+    async function init() {
+      const applicationId = getApplicationId();
+
+      if (!applicationId) {
+        subtitle.textContent = "";
+        showMessage("error", "Müraciət tapılmadı. Linki yoxlayın.");
+        return;
+      }
+
+      const { data, error } = await client
+        .rpc("get_application_for_booking", { p_application_id: applicationId })
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error("Application load error:", error);
+        subtitle.textContent = "";
+        showMessage("error", "Müraciət tapılmadı. Linki yoxlayın.");
+        return;
+      }
+
+      if (data.current_status === "EXAM_BOOKED") {
+        subtitle.textContent = "";
+        showMessage("info", "Bu müraciət üçün artıq imtahan sessiyası rezerv edilib.");
+        return;
+      }
+
+      if (data.current_status !== "ELIGIBLE") {
+        subtitle.textContent = "";
+        showMessage("info", "Bu müraciət hazırda imtahan seçiminə açıq deyil.");
+        return;
+      }
+
+      subtitle.textContent = `${data.program_name} — imtahan tarixi seçin:`;
+      await loadSessions(applicationId, data.program_id);
+    }
+
+    init();
+  </script>
+</body>
+</html>

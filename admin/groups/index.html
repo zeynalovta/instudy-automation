@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <base href="/admin/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learnup Admin — DMA qrupları</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:#127663; --ink:#17232b; --muted:#6d7b83;
+      --line:#dfe7ea; --bg:#f4f7f9; --white:#fff;
+    }
+    body {
+      min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+    }
+    #bootScreen {
+      min-height:100vh; display:grid; place-items:center; color:var(--muted); padding:24px;
+    }
+    .shell { display:none; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+    .shell.ready { display:grid; }
+    aside { background:#102f35; color:#fff; padding:26px 18px; }
+    .brand { font-size:28px; font-weight:800; padding:0 10px 28px; }
+    .brand span { color:#53c7ad; }
+    nav a {
+      display:block; color:rgba(255,255,255,.75); text-decoration:none;
+      padding:12px 14px; border-radius:11px; margin-bottom:6px; font-weight:650; font-size:14px;
+    }
+    nav a.active { background:rgba(255,255,255,.10); color:#fff; }
+    main { min-width:0; }
+    .topbar {
+      min-height:76px; background:#fff; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; padding:14px 28px; gap:20px;
+    }
+    .topbar h1 { font-size:21px; }
+    .user-area { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .logout {
+      border:1px solid var(--line); background:#fff; padding:9px 12px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .content { padding:28px; display:grid; gap:20px; grid-template-columns: 340px minmax(0,1fr); align-items:start; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+    .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); font-weight:800; }
+    .panel-body { padding:20px; }
+    .field { margin-bottom:16px; }
+    label { display:block; font-size:13px; font-weight:700; margin-bottom:7px; }
+    input, select {
+      width:100%; border:1px solid #d5dfe3; border-radius:11px; padding:11px 12px;
+      font:inherit; background:#fff;
+    }
+    button {
+      border:0; border-radius:11px; padding:13px; background:var(--green); color:#fff;
+      font-weight:800; cursor:pointer; width:100%;
+    }
+    button:disabled { opacity:.6; cursor:wait; }
+    .message { margin-bottom:14px; padding:11px 13px; border-radius:11px; font-size:13px; display:none; }
+    .message.error { display:block; color:#9f3131; background:#fff1f1; border:1px solid #ffd7d7; }
+    .message.success { display:block; color:#176b58; background:#eefaf6; border:1px solid #ccece3; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:14px 16px; border-bottom:1px solid #edf1f3; font-size:13px; }
+    th { color:#6d7b83; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#fbfcfd; }
+    .badge {
+      display:inline-flex; padding:6px 9px; border-radius:999px;
+      font-size:11px; font-weight:800; white-space:nowrap;
+    }
+    .green { background:#e8f7f3; color:#176b58; }
+    .gray { background:#f0f3f5; color:#607078; }
+    .loading,.empty,.error { padding:36px 20px; text-align:center; color:var(--muted); }
+    .full-width { grid-column: 1 / -1; }
+    .delete-btn {
+      width:auto; background:#fff; color:#a33d3d; border:1px solid #ffd7d7;
+      border-radius:9px; padding:7px 12px; font-size:12px; font-weight:700;
+    }
+    .delete-btn:disabled { opacity:.6; cursor:wait; }
+    .date-input {
+      width:auto; border:1px solid #d5dfe3; border-radius:9px; padding:7px 9px; font-size:12.5px;
+    }
+    .date-input:disabled { opacity:.6; cursor:wait; }
+    @media (max-width:900px) {
+      .shell.ready { grid-template-columns:1fr; }
+      aside { display:none; }
+      .content { grid-template-columns:1fr; padding:18px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bootScreen" style="
+    min-height:100vh; display:grid; place-items:center;
+    background:#f4f7f9; color:#6d7b83; padding:24px;
+  ">
+    <div>Admin panel yoxlanılır...</div>
+  </div>
+
+  <div id="appShell" class="shell">
+    <aside>
+      <div class="brand">Learn<span>up</span></div>
+      <nav>
+        <a href="../index.html">Namizədlər</a>
+        <a href="../exams/index.html">İmtahanlar</a>
+        <a href="../interviews/index.html">Müsahibələr</a>
+        <a class="active" href="./index.html">DMA qrupları</a>
+        <a href="../attendance/index.html">Davamiyyət</a>
+        <a href="../graduates/index.html">Məzunlar</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <h1>DMA qrupları</h1>
+        <div class="user-area">
+          <span id="userEmail"></span>
+          <button id="logoutButton" class="logout">Çıxış</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="panel">
+          <div class="panel-head">Yeni qrup</div>
+          <div class="panel-body">
+            <div id="formMessage" class="message"></div>
+            <form id="groupForm">
+              <div class="field">
+                <label for="programSelect">Proqram</label>
+                <select id="programSelect" required>
+                  <option value="">Seç...</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="nameInput">Qrup adı</label>
+                <input id="nameInput" type="text" placeholder="Məs. DMA-42" required>
+              </div>
+              <div class="field">
+                <label for="startInput">Başlama tarixi</label>
+                <input id="startInput" type="date" required>
+              </div>
+              <div class="field">
+                <label for="endInput">Bitmə tarixi (məlum deyilsə boş saxla)</label>
+                <input id="endInput" type="date">
+              </div>
+              <button id="submitButton" type="submit">Qrup yarat</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Mövcud qruplar</div>
+          <div id="groupsMessage" class="message" style="margin:14px 20px 0;"></div>
+          <div class="table-wrap">
+            <div id="stateMessage" class="loading">Yüklənir...</div>
+            <table id="groupsTable" hidden>
+              <thead>
+                <tr>
+                  <th>Proqram</th>
+                  <th>Qrup adı</th>
+                  <th>Başlama</th>
+                  <th>Bitmə</th>
+                  <th>Üzv sayı</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="groupsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const bootScreen = document.getElementById("bootScreen");
+    const appShell = document.getElementById("appShell");
+    const stateMessage = document.getElementById("stateMessage");
+    const table = document.getElementById("groupsTable");
+    const tbody = document.getElementById("groupsBody");
+    const programSelect = document.getElementById("programSelect");
+    const form = document.getElementById("groupForm");
+    const submitButton = document.getElementById("submitButton");
+    const formMessage = document.getElementById("formMessage");
+    const groupsMessage = document.getElementById("groupsMessage");
+
+    function isAdminUser(user) {
+      return user?.app_metadata?.role === "admin";
+    }
+
+    // Fail closed: only a claim that is exactly one of these known values
+    // is trusted. Missing/null/empty/mistyped staff_scope now resolves to
+    // "no_access" instead of silently becoming "all" — the previous
+    // fallback here gave a blank claim full super-admin access.
+    const VALID_STAFF_SCOPES = ["dma", "all"];
+    function getStaffScope(user) {
+      const scope = user?.app_metadata?.staff_scope;
+      return VALID_STAFF_SCOPES.includes(scope) ? scope : "no_access";
+    }
+
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function renderAccessGate(title, message) {
+      bootScreen.innerHTML = `
+        <div style="width:min(100%,460px);background:#fff;border:1px solid #dfe7ea;border-radius:20px;padding:30px;text-align:center;box-shadow:0 18px 45px rgba(20,46,55,.08);">
+          <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Learn<span style="color:#168a74;">up</span></div>
+          <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
+          <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">${escapeHtml(message)}</p>
+          <a href="/admin/login/index.html" style="display:inline-block;background:#127663;color:#fff;text-decoration:none;padding:13px 18px;border-radius:12px;font-weight:800;">Giriş səhifəsinə keç</a>
+        </div>
+      `;
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      return new Intl.DateTimeFormat("az-AZ", { day:"2-digit", month:"2-digit", year:"numeric" }).format(new Date(value));
+    }
+
+    function showGroupsMessage(type, text) {
+      groupsMessage.className = "message " + type;
+      groupsMessage.textContent = text;
+    }
+
+    async function loadPrograms() {
+      const { data, error } = await client.from("dma_programs").select("id, name").order("name");
+      if (error) {
+        console.error("Programs load error:", error);
+        return;
+      }
+      for (const program of data || []) {
+        const option = document.createElement("option");
+        option.value = String(program.id);
+        option.textContent = program.name;
+        programSelect.appendChild(option);
+      }
+    }
+
+    async function loadGroups() {
+      const { data: groups, error } = await client
+        .from("dma_training_groups")
+        .select("id, name, starts_at, ends_at, dma_programs!dma_training_groups_program_id_fkey (id, name)")
+        .order("starts_at", { ascending: false });
+
+      if (error) {
+        console.error("Groups load error:", error);
+        stateMessage.className = "error";
+        stateMessage.textContent = "Qruplar yüklənmədi: " + error.message;
+        return;
+      }
+
+      const { data: members, error: membersError } = await client
+        .from("dma_applications")
+        .select("training_group_id")
+        .not("training_group_id", "is", null);
+
+      if (membersError) {
+        console.error("Members load error:", membersError);
+      }
+
+      const memberCounts = new Map();
+      for (const m of members || []) {
+        memberCounts.set(m.training_group_id, (memberCounts.get(m.training_group_id) || 0) + 1);
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      tbody.innerHTML = (groups || []).map(group => {
+        const isActive = !group.ends_at || group.ends_at >= today;
+        return `
+          <tr>
+            <td>${escapeHtml(group.programs?.name || "—")}</td>
+            <td><strong>${escapeHtml(group.name)}</strong></td>
+            <td>
+              <input type="date" class="date-input start-input" data-group-id="${group.id}"
+                value="${group.starts_at || ""}" data-previous-value="${group.starts_at || ""}">
+            </td>
+            <td>
+              <input type="date" class="date-input end-input" data-group-id="${group.id}"
+                value="${group.ends_at || ""}" data-previous-value="${group.ends_at || ""}">
+            </td>
+            <td>${memberCounts.get(group.id) || 0}</td>
+            <td><span class="badge ${isActive ? "green" : "gray"}">${isActive ? "Aktiv" : "Bitib"}</span></td>
+            <td><button type="button" class="delete-btn" data-group-id="${group.id}">Sil</button></td>
+          </tr>
+        `;
+      }).join("");
+
+      stateMessage.hidden = true;
+      table.hidden = false;
+
+      if (!(groups || []).length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">Hələ heç bir qrup yaradılmayıb.</td></tr>`;
+      }
+    }
+
+    async function updateGroupDate(groupId, field, inputEl) {
+      const previousValue = inputEl.dataset.previousValue;
+      const newValue = inputEl.value || null;
+
+      if (field === "starts_at" && !newValue) {
+        inputEl.value = previousValue;
+        showGroupsMessage("error", "Başlama tarixi boş buraxıla bilməz.");
+        return;
+      }
+
+      inputEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_training_groups")
+        .update({ [field]: newValue })
+        .eq("id", groupId);
+
+      inputEl.disabled = false;
+
+      if (error) {
+        console.error("Group date update error:", error);
+        showGroupsMessage("error", "Tarix yenilənmədi: " + error.message);
+        inputEl.value = previousValue;
+        return;
+      }
+
+      inputEl.dataset.previousValue = newValue || "";
+      showGroupsMessage("success", "Tarix yeniləndi.");
+      await loadGroups();
+    }
+
+    tbody.addEventListener("change", event => {
+      const startEl = event.target.closest(".start-input");
+      if (startEl) {
+        updateGroupDate(Number(startEl.dataset.groupId), "starts_at", startEl);
+        return;
+      }
+
+      const endEl = event.target.closest(".end-input");
+      if (endEl) {
+        updateGroupDate(Number(endEl.dataset.groupId), "ends_at", endEl);
+      }
+    });
+
+    tbody.addEventListener("click", async event => {
+      const button = event.target.closest(".delete-btn");
+      if (!button) return;
+
+      if (!window.confirm("Bu qrupu silmək istədiyinizə əminsiniz?")) return;
+
+      const groupId = Number(button.dataset.groupId);
+      button.disabled = true;
+
+      const { error } = await client.from("dma_training_groups").delete().eq("id", groupId);
+
+      if (error) {
+        button.disabled = false;
+        console.error("Group delete error:", error);
+        const isFkViolation = error.code === "23503" || /foreign key/i.test(error.message || "");
+        showGroupsMessage(
+          "error",
+          isFkViolation
+            ? "Bu qrup silinə bilmədi, çünki üzvləri var. Əvvəlcə onları başqa qrupa köçürün."
+            : "Qrup silinmədi: " + error.message
+        );
+        return;
+      }
+
+      showGroupsMessage("success", "Qrup silindi.");
+      await loadGroups();
+    });
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      submitButton.disabled = true;
+      formMessage.className = "message";
+      formMessage.textContent = "";
+
+      const programId = Number(programSelect.value);
+      const name = document.getElementById("nameInput").value.trim();
+      const startsAt = document.getElementById("startInput").value;
+      const endsAt = document.getElementById("endInput").value || null;
+
+      const { error } = await client.from("dma_training_groups").insert({
+        program_id: programId,
+        name,
+        starts_at: startsAt,
+        ends_at: endsAt,
+      });
+
+      submitButton.disabled = false;
+
+      if (error) {
+        console.error("Group create error:", error);
+        formMessage.className = "message error";
+        formMessage.textContent = "Qrup yaradıla bilmədi: " + error.message;
+        return;
+      }
+
+      formMessage.className = "message success";
+      formMessage.textContent = "Qrup yaradıldı.";
+      form.reset();
+      await loadGroups();
+    });
+
+    async function init() {
+      try {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!sessionData.session) {
+          renderAccessGate("Admin girişi tələb olunur", "Bu səhifəni görmək üçün əvvəlcə sistemə daxil olun.");
+          return;
+        }
+
+        const { data: userData, error: userError } = await client.auth.getUser();
+        if (userError) throw userError;
+
+        const user = userData.user;
+
+        if (!isAdminUser(user)) {
+          await client.auth.signOut();
+          renderAccessGate("Giriş qadağandır", "Bu hesabın admin panelinə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        if (!["dma", "all"].includes(getStaffScope(user))) {
+          renderAccessGate("Giriş qadağandır", "Bu hesabın bu panelə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        document.getElementById("userEmail").textContent = user.email || "";
+        bootScreen.style.display = "none";
+        appShell.classList.add("ready");
+
+        await Promise.all([loadPrograms(), loadGroups()]);
+
+      } catch (error) {
+        console.error("Admin groups init error:", error);
+        bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
+      }
+    }
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      await client.auth.signOut();
+      window.location.href = "/admin/login/index.html";
+    });
+
+    init();
+  </script>
+</body>
+</html>

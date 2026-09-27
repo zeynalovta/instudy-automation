@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <base href="/admin/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learnup Admin — Davamiyyət</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:#127663; --ink:#17232b; --muted:#6d7b83;
+      --line:#dfe7ea; --bg:#f4f7f9; --white:#fff;
+    }
+    body {
+      min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+    }
+    #bootScreen {
+      min-height:100vh; display:grid; place-items:center; color:var(--muted); padding:24px;
+    }
+    .shell { display:none; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+    .shell.ready { display:grid; }
+    aside { background:#102f35; color:#fff; padding:26px 18px; }
+    .brand { font-size:28px; font-weight:800; padding:0 10px 28px; }
+    .brand span { color:#53c7ad; }
+    nav a {
+      display:block; color:rgba(255,255,255,.75); text-decoration:none;
+      padding:12px 14px; border-radius:11px; margin-bottom:6px; font-weight:650; font-size:14px;
+    }
+    nav a.active { background:rgba(255,255,255,.10); color:#fff; }
+    main { min-width:0; }
+    .topbar {
+      min-height:76px; background:#fff; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; padding:14px 28px; gap:20px;
+    }
+    .topbar h1 { font-size:21px; }
+    .user-area { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .logout {
+      border:1px solid var(--line); background:#fff; padding:9px 12px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .content { padding:28px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; margin-bottom:20px; }
+    .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); font-weight:800; }
+    .panel-body { padding:20px; }
+    .picker-row { display:grid; grid-template-columns:minmax(220px,1.5fr) minmax(160px,.8fr) auto; gap:10px; align-items:end; }
+    .field label { display:block; font-size:13px; font-weight:700; margin-bottom:7px; }
+    input, select {
+      width:100%; border:1px solid #d5dfe3; border-radius:11px; padding:11px 12px;
+      font:inherit; background:#fff;
+    }
+    button {
+      border:0; border-radius:11px; padding:12px 20px; background:var(--green); color:#fff;
+      font-weight:800; cursor:pointer; white-space:nowrap;
+    }
+    button:disabled { opacity:.6; cursor:wait; }
+    .message { margin:14px 20px 0; padding:11px 13px; border-radius:11px; font-size:13px; display:none; }
+    .message.error { display:block; color:#9f3131; background:#fff1f1; border:1px solid #ffd7d7; }
+    .message.success { display:block; color:#176b58; background:#eefaf6; border:1px solid #ccece3; }
+    .message.info { display:block; color:#6d7b83; background:#f4f7f9; border:1px solid #e1e8eb; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:14px 16px; border-bottom:1px solid #edf1f3; font-size:13px; }
+    th { color:#6d7b83; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#fbfcfd; }
+    .attend-toggle { display:flex; gap:6px; }
+    .attend-btn {
+      border:1px solid #d5dfe3; background:#fff; color:var(--muted); border-radius:9px;
+      padding:8px 14px; font-size:12.5px; font-weight:800; cursor:pointer; width:auto;
+    }
+    .attend-btn.yes.active { background:#e8f7f3; border-color:#bfe6da; color:#176b58; }
+    .attend-btn.no.active { background:#fff0f0; border-color:#ffd7d7; color:#a33d3d; }
+    .attend-btn:disabled { opacity:.6; cursor:wait; }
+    .rate { color:var(--muted); font-size:12.5px; }
+    .loading,.empty,.error { padding:36px 20px; text-align:center; color:var(--muted); }
+    @media (max-width:900px) {
+      .shell.ready { grid-template-columns:1fr; }
+      aside { display:none; }
+      .content { padding:18px; }
+      .picker-row { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bootScreen" style="
+    min-height:100vh; display:grid; place-items:center;
+    background:#f4f7f9; color:#6d7b83; padding:24px;
+  ">
+    <div>Admin panel yoxlanılır...</div>
+  </div>
+
+  <div id="appShell" class="shell">
+    <aside>
+      <div class="brand">Learn<span>up</span></div>
+      <nav>
+        <a href="../index.html">Namizədlər</a>
+        <a href="../exams/index.html">İmtahanlar</a>
+        <a href="../interviews/index.html">Müsahibələr</a>
+        <a href="../groups/index.html">DMA qrupları</a>
+        <a class="active" href="./index.html">Davamiyyət</a>
+        <a href="../graduates/index.html">Məzunlar</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <h1>Davamiyyət</h1>
+        <div class="user-area">
+          <span id="userEmail"></span>
+          <button id="logoutButton" class="logout">Çıxış</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="panel">
+          <div class="panel-head">Qrup və tarix seç</div>
+          <div class="panel-body">
+            <div class="picker-row">
+              <div class="field">
+                <label for="groupSelect">Qrup</label>
+                <select id="groupSelect">
+                  <option value="">Seç...</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="dateInput">Tarix</label>
+                <input id="dateInput" type="date">
+              </div>
+              <button id="loadButton" type="button">Yüklə</button>
+            </div>
+          </div>
+          <div id="pickerMessage" class="message"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head" id="rosterTitle">Namizədlər</div>
+          <div id="rosterMessage" class="message"></div>
+          <div class="table-wrap">
+            <div id="stateMessage" class="loading">Qrup seçib "Yüklə" düyməsini basın.</div>
+            <table id="rosterTable" hidden>
+              <thead>
+                <tr>
+                  <th>Namizəd</th>
+                  <th>Telefon</th>
+                  <th>Ümumi davamiyyət</th>
+                  <th>Bu gün</th>
+                </tr>
+              </thead>
+              <tbody id="rosterBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const bootScreen = document.getElementById("bootScreen");
+    const appShell = document.getElementById("appShell");
+    const stateMessage = document.getElementById("stateMessage");
+    const table = document.getElementById("rosterTable");
+    const tbody = document.getElementById("rosterBody");
+    const groupSelect = document.getElementById("groupSelect");
+    const dateInput = document.getElementById("dateInput");
+    const loadButton = document.getElementById("loadButton");
+    const pickerMessage = document.getElementById("pickerMessage");
+    const rosterMessage = document.getElementById("rosterMessage");
+    const rosterTitle = document.getElementById("rosterTitle");
+
+    let currentGroupId = null;
+    let currentDate = null;
+
+    function isAdminUser(user) {
+      return user?.app_metadata?.role === "admin";
+    }
+
+    // Fail closed: only a claim that is exactly one of these known values
+    // is trusted. Missing/null/empty/mistyped staff_scope now resolves to
+    // "no_access" instead of silently becoming "all" — the previous
+    // fallback here gave a blank claim full super-admin access.
+    const VALID_STAFF_SCOPES = ["dma", "all"];
+    function getStaffScope(user) {
+      const scope = user?.app_metadata?.staff_scope;
+      return VALID_STAFF_SCOPES.includes(scope) ? scope : "no_access";
+    }
+
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function renderAccessGate(title, message) {
+      bootScreen.innerHTML = `
+        <div style="width:min(100%,460px);background:#fff;border:1px solid #dfe7ea;border-radius:20px;padding:30px;text-align:center;box-shadow:0 18px 45px rgba(20,46,55,.08);">
+          <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Learn<span style="color:#168a74;">up</span></div>
+          <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
+          <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">${escapeHtml(message)}</p>
+          <a href="/admin/login/index.html" style="display:inline-block;background:#127663;color:#fff;text-decoration:none;padding:13px 18px;border-radius:12px;font-weight:800;">Giriş səhifəsinə keç</a>
+        </div>
+      `;
+    }
+
+    function showPickerMessage(type, text) {
+      pickerMessage.className = "message " + type;
+      pickerMessage.textContent = text;
+    }
+
+    function showRosterMessage(type, text) {
+      rosterMessage.className = "message " + type;
+      rosterMessage.textContent = text;
+    }
+
+    async function loadGroups() {
+      const { data, error } = await client
+        .from("dma_training_groups")
+        .select("id, name, dma_programs!dma_training_groups_program_id_fkey (name)")
+        .order("starts_at", { ascending: false });
+
+      if (error) {
+        console.error("Groups load error:", error);
+        showPickerMessage("error", "Qruplar yüklənmədi: " + error.message);
+        return;
+      }
+
+      for (const group of data || []) {
+        const option = document.createElement("option");
+        option.value = String(group.id);
+        option.textContent = `${group.programs?.name || "—"} — ${group.name}`;
+        groupSelect.appendChild(option);
+      }
+    }
+
+    async function loadRoster() {
+      const groupId = Number(groupSelect.value);
+      const date = dateInput.value;
+
+      if (!groupId || !date) {
+        showPickerMessage("error", "Qrup və tarix seçilməlidir.");
+        return;
+      }
+
+      currentGroupId = groupId;
+      currentDate = date;
+      pickerMessage.className = "message";
+      rosterMessage.className = "message";
+      table.hidden = true;
+      stateMessage.hidden = false;
+      stateMessage.className = "loading";
+      stateMessage.textContent = "Yüklənir...";
+
+      const { data: members, error: membersError } = await client
+        .from("dma_applications")
+        .select("id, dma_candidates!dma_applications_candidate_id_fkey (full_name, whatsapp_phone)")
+        .eq("training_group_id", groupId)
+        .order("id");
+
+      if (membersError) {
+        console.error("Members load error:", membersError);
+        stateMessage.className = "error";
+        stateMessage.textContent = "Namizədlər yüklənmədi: " + membersError.message;
+        return;
+      }
+
+      const { data: allRecords, error: recordsError } = await client
+        .from("dma_attendance_records")
+        .select("application_id, session_date, attended")
+        .eq("training_group_id", groupId);
+
+      if (recordsError) {
+        console.error("Attendance load error:", recordsError);
+      }
+
+      const records = allRecords || [];
+      const todaysByApp = new Map();
+      const historyByApp = new Map();
+
+      for (const r of records) {
+        if (r.session_date === date) todaysByApp.set(r.application_id, r.attended);
+        if (!historyByApp.has(r.application_id)) historyByApp.set(r.application_id, { attended: 0, total: 0 });
+        const h = historyByApp.get(r.application_id);
+        h.total += 1;
+        if (r.attended) h.attended += 1;
+      }
+
+      const groupLabel = groupSelect.options[groupSelect.selectedIndex]?.textContent || "";
+      rosterTitle.textContent = `${groupLabel} — ${new Intl.DateTimeFormat("az-AZ", { day:"2-digit", month:"2-digit", year:"numeric" }).format(new Date(date))}`;
+
+      tbody.innerHTML = (members || []).map(m => {
+        const c = m.candidates || {};
+        const h = historyByApp.get(m.id) || { attended: 0, total: 0 };
+        const rate = h.total ? Math.round((h.attended / h.total) * 100) : null;
+        const today = todaysByApp.has(m.id) ? todaysByApp.get(m.id) : null;
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(c.full_name || "—")}</strong></td>
+            <td>${escapeHtml(c.whatsapp_phone || "—")}</td>
+            <td class="rate">${h.total ? `${h.attended}/${h.total} (${rate}%)` : "—"}</td>
+            <td>
+              <div class="attend-toggle" data-app-id="${m.id}">
+                <button type="button" class="attend-btn yes ${today === true ? "active" : ""}" data-value="true">Gəldi</button>
+                <button type="button" class="attend-btn no ${today === false ? "active" : ""}" data-value="false">Gəlmədi</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      stateMessage.hidden = true;
+      table.hidden = false;
+
+      if (!(members || []).length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty">Bu qrupda hələ üzv yoxdur.</td></tr>`;
+      }
+    }
+
+    tbody.addEventListener("click", async event => {
+      const button = event.target.closest(".attend-btn");
+      if (!button) return;
+
+      const toggle = button.closest(".attend-toggle");
+      const applicationId = Number(toggle.dataset.appId);
+      const attended = button.dataset.value === "true";
+
+      toggle.querySelectorAll("button").forEach(b => b.disabled = true);
+
+      const { error } = await client
+        .from("dma_attendance_records")
+        .upsert({
+          training_group_id: currentGroupId,
+          application_id: applicationId,
+          session_date: currentDate,
+          attended,
+        }, { onConflict: "training_group_id,application_id,session_date" });
+
+      toggle.querySelectorAll("button").forEach(b => b.disabled = false);
+
+      if (error) {
+        console.error("Attendance save error:", error);
+        showRosterMessage("error", "Davamiyyət saxlanmadı: " + error.message);
+        return;
+      }
+
+      toggle.querySelectorAll(".attend-btn").forEach(b => b.classList.remove("active"));
+      button.classList.add("active");
+      showRosterMessage("success", "Davamiyyət saxlanıldı.");
+    });
+
+    loadButton.addEventListener("click", loadRoster);
+
+    async function init() {
+      try {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!sessionData.session) {
+          renderAccessGate("Admin girişi tələb olunur", "Bu səhifəni görmək üçün əvvəlcə sistemə daxil olun.");
+          return;
+        }
+
+        const { data: userData, error: userError } = await client.auth.getUser();
+        if (userError) throw userError;
+
+        const user = userData.user;
+
+        if (!isAdminUser(user)) {
+          await client.auth.signOut();
+          renderAccessGate("Giriş qadağandır", "Bu hesabın admin panelinə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        if (!["dma", "all"].includes(getStaffScope(user))) {
+          renderAccessGate("Giriş qadağandır", "Bu hesabın bu panelə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        document.getElementById("userEmail").textContent = user.email || "";
+        bootScreen.style.display = "none";
+        appShell.classList.add("ready");
+
+        dateInput.value = new Date().toISOString().slice(0, 10);
+        await loadGroups();
+
+      } catch (error) {
+        console.error("Admin attendance init error:", error);
+        bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
+      }
+    }
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      await client.auth.signOut();
+      window.location.href = "/admin/login/index.html";
+    });
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>DMA Təlim Proqramına Müraciət | Learnup</title>
+
+  <meta
+    name="description"
+    content="Learnup DMA təlim proqramlarına onlayn müraciət formu."
+  />
+<style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f4f7f9;
+      color: #17232b;
+      min-height: 100vh;
+    }
+
+    .page {
+      width: 100%;
+      min-height: 100vh;
+      padding: 40px 20px 80px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+
+    .brand {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .brand span {
+      color: #168a74;
+    }
+
+    .program-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #68747c;
+      background: #ffffff;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid #dde5e9;
+    }
+
+
+    .brand-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 28px;
+      margin-bottom: 30px;
+    }
+
+    .brand-left,
+    .brand-center,
+    .brand-right {
+      display: flex;
+      align-items: center;
+    }
+
+    .brand-center {
+      justify-content: center;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .brand-right {
+      justify-content: flex-end;
+    }
+
+    .logo-img {
+      display: block;
+      max-height: 52px;
+      max-width: 210px;
+      object-fit: contain;
+    }
+
+    .learnup-wordmark {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #17232b;
+      white-space: nowrap;
+    }
+
+    .learnup-wordmark span {
+      color: #168a74;
+    }
+
+    .branch-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid #cfdcdf;
+      background: #ffffff;
+      color: #1f4e4a;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      gap: 34px;
+      align-items: center;
+    }
+
+    .hero-copy {
+      min-width: 0;
+    }
+
+    .hero-logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      min-height: 170px;
+      padding-left: 24px;
+      border-left: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .hero-logo-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .hero-logo-card img {
+      width: 100%;
+      max-width: 180px;
+      max-height: 110px;
+      object-fit: contain;
+      opacity: 0.96;
+    }
+
+    .hero-logo-placeholder {
+      width: 100%;
+      max-width: 180px;
+      min-height: 92px;
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: rgba(255, 255, 255, 0.72);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+
+    .brand-row-simple {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 34px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .top-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .learnup-top-brand {
+      min-width: 150px;
+      justify-content: flex-start;
+    }
+
+    .dma-top-brand {
+      align-items: center;
+    }
+
+    .top-logo {
+      display: block;
+      object-fit: contain;
+    }
+
+    .dma-top-logo {
+      height: 64px;
+      width: auto;
+      max-width: 220px;
+    }
+
+    .hero {
+      display: block;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+    }
+
+    .hero {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(13, 54, 63, 0.98),
+          rgba(12, 91, 85, 0.96)
+        );
+      color: #ffffff;
+      border-radius: 28px;
+      padding: 42px;
+      margin-bottom: 24px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.05;
+      letter-spacing: -2px;
+      max-width: 720px;
+      margin-bottom: 18px;
+    }
+
+    .hero p {
+      max-width: 680px;
+      color: rgba(255, 255, 255, 0.78);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    .form-card {
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 42px;
+      box-shadow: 0 20px 50px rgba(20, 46, 55, 0.08);
+      border: 1px solid #e4eaed;
+    }
+
+    .section {
+      margin-bottom: 42px;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e8f5f2;
+      color: #147b69;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .section h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .section-description {
+      color: #708089;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #28363d;
+    }
+
+    .required {
+      color: #d64c4c;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #d7e0e4;
+      border-radius: 13px;
+      padding: 14px 15px;
+      font-family: inherit;
+      font-size: 15px;
+      background: #ffffff;
+      color: #17232b;
+      outline: none;
+      transition: 0.2s ease;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #168a74;
+      box-shadow: 0 0 0 4px rgba(22, 138, 116, 0.08);
+    }
+
+    .radio-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .radio-card {
+      position: relative;
+    }
+
+    .radio-card input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .radio-card label {
+      display: block;
+      padding: 18px;
+      border: 1px solid #d7e0e4;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      background: #ffffff;
+    }
+
+    .radio-card input:checked + label {
+      border-color: #168a74;
+      background: #edf9f6;
+      box-shadow: 0 0 0 3px rgba(22, 138, 116, 0.06);
+    }
+
+    .radio-title {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: #17232b;
+    }
+
+    .radio-description {
+      font-size: 13px;
+      font-weight: 400;
+      color: #718089;
+    }
+
+    .notice {
+      background: #f4f8f9;
+      border: 1px solid #dce7ea;
+      padding: 18px;
+      border-radius: 14px;
+      line-height: 1.6;
+      color: #526169;
+      font-size: 13px;
+      margin-top: 20px;
+    }
+
+    .consent {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .consent input {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: #168a74;
+    }
+
+    .consent label {
+      font-weight: 400;
+      color: #526169;
+      line-height: 1.6;
+    }
+
+    .submit-area {
+      border-top: 1px solid #e8edef;
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .submit-note {
+      color: #7a888f;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .submit-btn {
+      border: none;
+      background: #127663;
+      color: #ffffff;
+      padding: 16px 28px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 220px;
+      transition: 0.2s ease;
+    }
+
+    .submit-btn:hover {
+      background: #0d6253;
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message {
+      display: none;
+      margin-bottom: 24px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .message.error {
+      display: block;
+      background: #fff1f1;
+      color: #9f3131;
+      border: 1px solid #ffd7d7;
+    }
+
+    .message.success {
+      display: block;
+      background: #eefaf6;
+      color: #176b58;
+      border: 1px solid #ccece3;
+    }
+
+
+    .success-screen {
+      display: none;
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 56px 42px;
+      box-shadow: 0 20px 50px rgba(20, 46, 55, 0.08);
+      border: 1px solid #e4eaed;
+      text-align: center;
+      animation: successFadeIn 0.45s ease;
+    }
+
+    .success-screen.active {
+      display: block;
+    }
+
+    .success-icon {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e8f7f3;
+      color: #127663;
+      font-size: 34px;
+      font-weight: 800;
+      border: 1px solid #cbe9e1;
+    }
+
+    .success-eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: #eef8f5;
+      color: #147b69;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .success-screen h2 {
+      max-width: 700px;
+      margin: 0 auto 18px;
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.08;
+      letter-spacing: -1.6px;
+      color: #17232b;
+    }
+
+    .success-lead {
+      max-width: 680px;
+      margin: 0 auto;
+      color: #607078;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    .success-next-step {
+      max-width: 650px;
+      margin: 34px auto 0;
+      padding: 22px;
+      border-radius: 18px;
+      background: #f5f9fa;
+      border: 1px solid #dfe9ec;
+      text-align: left;
+    }
+
+    .success-next-step span {
+      display: block;
+      margin-bottom: 7px;
+      color: #7b8990;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .success-next-step strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 19px;
+      color: #17232b;
+    }
+
+    .success-next-step p {
+      color: #607078;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .success-actions {
+      margin-top: 30px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .home-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 220px;
+      padding: 15px 24px;
+      border-radius: 14px;
+      background: #127663;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      transition: 0.2s ease;
+    }
+
+    .home-btn:hover {
+      background: #0d6253;
+      transform: translateY(-1px);
+    }
+
+    @keyframes successFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        padding: 20px 14px 50px;
+      }
+
+      .brand-row-simple {
+        gap: 20px;
+        align-items: center;
+      }
+
+      .learnup-top-brand,
+      .dma-top-brand {
+        justify-content: flex-start;
+      }
+
+      .dma-top-logo {
+        height: 52px;
+      }
+
+      .brand-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .brand-left,
+      .brand-center,
+      .brand-right {
+        justify-content: flex-start;
+      }
+
+      .brand-center {
+        flex-wrap: wrap;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-logos {
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.22);
+        padding-left: 0;
+        padding-top: 28px;
+        min-height: auto;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero,
+      .form-card {
+        padding: 26px 20px;
+        border-radius: 20px;
+      }
+
+      .hero h1 {
+        letter-spacing: -1.5px;
+      }
+
+      .grid,
+      .radio-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .submit-area {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .submit-btn {
+        width: 100%;
+      }
+
+      .success-screen {
+        padding: 40px 22px;
+        border-radius: 20px;
+      }
+
+      .success-next-step {
+        text-align: center;
+      }
+
+      .home-btn {
+        width: 100%;
+      }
+    }
+  
+    /* ===== FINAL TOP BRANDING LAYOUT ===== */
+    .brand-row-simple {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      align-items: center !important;
+      width: 100% !important;
+      gap: 24px !important;
+      margin-bottom: 34px !important;
+    }
+
+    .brand-row-simple .dma-top-brand {
+      justify-self: start !important;
+    }
+
+    .brand-row-simple .learnup-top-brand {
+      justify-self: end !important;
+      min-width: 0 !important;
+    }
+
+    .hero {
+      min-height: 340px;
+      display: flex !important;
+      align-items: center;
+      padding: 42px !important;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+    }
+
+    .hero h1 {
+      font-size: clamp(40px, 5.4vw, 66px);
+      line-height: 1.02;
+      letter-spacing: -2.6px;
+      max-width: 760px;
+      margin-bottom: 22px;
+    }
+
+    .hero p {
+      max-width: 700px;
+      font-size: 17px;
+      line-height: 1.72;
+    }
+
+    @media (max-width: 700px) {
+      .brand-row-simple {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+      }
+
+      .brand-row-simple .dma-top-brand,
+      .brand-row-simple .learnup-top-brand {
+        justify-self: start !important;
+      }
+
+      .hero {
+        min-height: auto;
+        padding: 30px 22px !important;
+      }
+
+      .hero h1 {
+        font-size: clamp(36px, 11vw, 52px);
+        letter-spacing: -1.8px;
+      }
+
+      .hero p {
+        font-size: 15px;
+      }
+    }
+
+  
+    /* ===== MOBILE LOGO LAYOUT ===== */
+    @media (max-width: 700px) {
+      .brand-row-simple {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: center !important;
+        gap: 8px !important;
+        width: 100% !important;
+        margin-bottom: 24px !important;
+      }
+
+      .brand-row-simple .dma-top-brand {
+        justify-self: start !important;
+        min-width: 0 !important;
+      }
+
+      .brand-row-simple .learnup-top-brand {
+        justify-self: end !important;
+        min-width: 0 !important;
+      }
+
+      .dma-top-logo {
+        width: 100% !important;
+        max-width: 112px !important;
+        height: auto !important;
+      }
+
+      .learnup-wordmark {
+        font-size: 19px !important;
+        white-space: nowrap !important;
+        line-height: 1 !important;
+      }
+    }
+
+  
+    .program-loading,
+    .program-error {
+      grid-column: 1 / -1;
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid #d7e0e4;
+      background: #f8fbfc;
+      color: #66777f;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .program-error {
+      color: #9f3131;
+      background: #fff4f4;
+      border-color: #ffd7d7;
+    }
+
+    .radio-card label {
+      height: 100%;
+      min-height: 96px;
+    }
+
+    .program-meta {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f2f7f6;
+      color: #27665d;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 700px) {
+      .radio-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .radio-card label {
+        min-height: auto;
+      }
+    }
+
+  
+    /* ===== CONSISTENT SECTION ALIGNMENT ===== */
+    .form-card {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .form-card .section {
+      width: 100%;
+      max-width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .form-card .section + .section {
+      padding-top: 4px;
+    }
+
+    #programGrid,
+    .grid {
+      width: 100%;
+    }
+
+    #programGrid {
+      align-items: stretch;
+    }
+
+    #programGrid .radio-card {
+      width: 100%;
+      height: 100%;
+    }
+
+    #programGrid .radio-card label {
+      width: 100%;
+      height: 100%;
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 700px) {
+      .form-card .section {
+        width: 100%;
+      }
+
+      #programGrid {
+        grid-template-columns: 1fr !important;
+      }
+
+      #programGrid .radio-card label {
+        min-height: 96px;
+      }
+    }
+
+  
+    html {
+      font-display: swap;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <main class="page">
+
+    <div class="container">
+
+      
+      
+      <div class="brand-row-simple">
+
+        <div class="top-brand dma-top-brand">
+          <img
+            class="top-logo dma-top-logo"
+            src="./Dövlət_Məşğulluq_Agentliyi_logo.png"
+            alt="Dövlət Məşğulluq Agentliyi"
+          />
+        </div>
+
+        <div class="top-brand learnup-top-brand">
+          <div class="learnup-wordmark">Learn<span>up</span></div>
+        </div>
+
+      </div>
+
+<section class="hero">
+        <div class="hero-copy">
+
+            <div class="hero-badge">
+              Qəbul üçün müraciət
+            </div>
+
+            <h1>
+              Gələcəyini qurmağa ilk addımı at.
+            </h1>
+
+            <p>
+              Müraciət formasını düzgün və tam şəkildə doldurun.
+              Məlumatlarınız ilkin uyğunluq yoxlaması üçün istifadə olunacaq.
+              Uyğun namizədlər növbəti mərhələ olan qəbul imtahanına dəvət ediləcəklər.
+            </p>
+          
+        </div>
+      </section>
+
+
+
+      <section class="form-card">
+
+        <div
+          id="formMessage"
+          class="message"
+        ></div>
+
+
+        <form id="applicationForm">
+
+          <!-- 1. ŞƏXSİ MƏLUMATLAR -->
+
+          <div class="section">
+
+            <div class="section-number">1</div>
+
+            <h2>Şəxsi məlumatlar</h2>
+
+            <p class="section-description">
+              Zəhmət olmasa, məlumatları rəsmi sənədlərinizdə olduğu kimi daxil edin.
+            </p>
+
+            <div class="grid">
+
+              <div class="field full-width">
+
+                <label for="full_name">
+                  Ad, soyad, ata adı
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  type="text"
+                  id="full_name"
+                  name="full_name"
+                  placeholder="Məsələn: Aysel Əliyeva Rauf qızı"
+                  required
+                />
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="fin">
+                  FİN
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  type="text"
+                  id="fin"
+                  name="fin"
+                  maxlength="7"
+                  placeholder="7 simvolluq FİN"
+                  required
+                />
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="birth_date">
+                  Doğum tarixi
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  type="date"
+                  id="birth_date"
+                  name="birth_date"
+                  required
+                />
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="email">
+                  Email
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="example@email.com"
+                  required
+                />
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="whatsapp_phone">
+                  WhatsApp nömrəsi
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  type="tel"
+                  id="whatsapp_phone"
+                  name="whatsapp_phone"
+                  placeholder="+994 50 000 00 00"
+                  required
+                />
+
+              </div>
+
+
+              <div class="field full-width">
+
+                <label for="address">
+                  Faktiki yaşadığınız ünvan
+                  <span class="required">*</span>
+                </label>
+
+                <textarea
+                  id="address"
+                  name="address"
+                  placeholder="Şəhər, rayon və faktiki yaşayış ünvanınızı qeyd edin"
+                  required
+                ></textarea>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- 2. PROQRAM -->
+
+          <div class="section">
+
+            <div class="section-number">2</div>
+
+            <h2>Təlim proqramını seçin</h2>
+
+            <p class="section-description">
+              İştirak etmək istədiyiniz proqramı seçin.
+            </p>
+
+            <div id="programGrid" class="radio-grid">
+              <div class="program-loading">
+                Təlim proqramları yüklənir...
+              </div>
+            </div>
+
+          </div>
+
+
+          <!-- 3. TƏHSİL VƏ STATUS -->
+
+          <div class="section">
+
+            <div class="section-number">3</div>
+
+            <h2>Təhsil və cari status</h2>
+
+            <p class="section-description">
+              Bu məlumatlar proqramın uyğunluq meyarlarının ilkin yoxlanması üçün istifadə olunur.
+            </p>
+
+            <div class="grid">
+
+              <div class="field full-width">
+
+                <label for="education">
+                  Təhsiliniz
+                  <span class="required">*</span>
+                </label>
+
+                <select
+                  id="education"
+                  name="education"
+                  required
+                >
+
+                  <option value="">
+                    Seçin
+                  </option>
+
+                  <option value="Orta təhsil">
+                    Orta təhsil
+                  </option>
+
+                  <option value="Orta ixtisas">
+                    Orta ixtisas
+                  </option>
+
+                  <option value="Bakalavr">
+                    Bakalavr
+                  </option>
+
+                  <option value="Magistr">
+                    Magistr
+                  </option>
+
+                  <option value="Digər">
+                    Digər
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="is_student">
+                  Hal-hazırda tələbəsinizmi?
+                  <span class="required">*</span>
+                </label>
+
+                <select
+                  id="is_student"
+                  name="is_student"
+                  required
+                >
+
+                  <option value="">
+                    Seçin
+                  </option>
+
+                  <option value="false">
+                    Xeyr
+                  </option>
+
+                  <option value="true">
+                    Bəli
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="is_employed">
+                  Hal-hazırda işləyirsinizmi?
+                  <span class="required">*</span>
+                </label>
+
+                <select
+                  id="is_employed"
+                  name="is_employed"
+                  required
+                >
+
+                  <option value="">
+                    Seçin
+                  </option>
+
+                  <option value="false">
+                    Xeyr
+                  </option>
+
+                  <option value="true">
+                    Bəli
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="has_active_voen">
+                  Adınıza aktiv VÖEN varmı?
+                  <span class="required">*</span>
+                </label>
+
+                <select
+                  id="has_active_voen"
+                  name="has_active_voen"
+                  required
+                >
+
+                  <option value="">
+                    Seçin
+                  </option>
+
+                  <option value="false">
+                    Xeyr
+                  </option>
+
+                  <option value="true">
+                    Bəli
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="attended_dma_course_last_12_months">
+                  Son 1 ildə DMA xətti ilə kursda iştirak etmisinizmi?
+                  <span class="required">*</span>
+                </label>
+
+                <select
+                  id="attended_dma_course_last_12_months"
+                  name="attended_dma_course_last_12_months"
+                  required
+                >
+
+                  <option value="">
+                    Seçin
+                  </option>
+
+                  <option value="false">
+                    Xeyr
+                  </option>
+
+                  <option value="true">
+                    Bəli
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <div class="notice">
+              Formada qeyd etdiyiniz məlumatlar ilkin müraciət və uyğunluq yoxlaması məqsədilə istifadə olunur.
+              Sonrakı mərhələlərdə bəzi məlumatların rəsmi mənbələr və sənədlər əsasında əlavə yoxlanılması tələb oluna bilər.
+            </div>
+
+
+            <div class="consent">
+
+              <input
+                type="checkbox"
+                id="consent"
+                required
+              />
+
+              <label for="consent">
+                Təqdim etdiyim məlumatların doğru olduğunu təsdiq edir və
+                müraciətimin qiymətləndirilməsi məqsədilə emal olunmasına razılıq verirəm.
+              </label>
+
+            </div>
+
+          </div>
+
+
+          <!-- SUBMIT -->
+
+          <div class="submit-area">
+
+            <div class="submit-note">
+              Müraciətin göndərilməsi təlimə avtomatik qəbul demək deyil.
+            </div>
+
+            <button
+              type="submit"
+              id="submitButton"
+              class="submit-btn"
+            >
+              Müraciəti göndər
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+      <section id="successScreen" class="success-screen" aria-live="polite">
+        <div class="success-icon">✓</div>
+
+        <div class="success-eyebrow">
+          Müraciət uğurla qeydə alındı
+        </div>
+
+        <h2>
+          Gələcək karyeran üçün ilk uğurlu addımı atdın.
+        </h2>
+
+        <p class="success-lead">
+          Təbrik edirik! Müraciətin uğurla qəbul edildi.
+          Məlumatların ilkin uyğunluq meyarları əsasında nəzərdən keçiriləcək.
+          Növbəti mərhələyə uyğun olduğun halda səninlə əlaqə saxlanılacaq və qəbul prosesi barədə məlumat veriləcək.
+        </p>
+
+        <div class="success-next-step">
+          <span>Növbəti mərhələ</span>
+          <strong>Qəbul imtahanı</strong>
+          <p>
+            İlkin uyğunluq yoxlamasından sonra uyğun namizədlər qəbul imtahanına dəvət olunacaqlar.
+            Əlaqə nömrəni aktiv saxla və WhatsApp mesajlarını izləməyi unutma.
+          </p>
+        </div>
+
+        <div class="success-actions">
+          <a class="home-btn" href="/">
+            Ana səhifəyə qayıt
+          </a>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script src="../../config.js"></script>
+  <script>
+    const EDGE_FUNCTION_URL = "/api/dma/apply";
+
+    const form = document.getElementById("applicationForm");
+    const submitButton = document.getElementById("submitButton");
+    const formMessage = document.getElementById("formMessage");
+    const formCard = document.querySelector(".form-card");
+    const successScreen = document.getElementById("successScreen");
+
+    const programGrid = document.getElementById("programGrid");
+
+
+    const PROGRAM_CACHE_KEY = "learnup_active_programs_v1";
+    const PROGRAM_CACHE_TIME_KEY = "learnup_active_programs_cached_at_v1";
+    const PROGRAM_CACHE_TTL = 30 * 60 * 1000; // 30 dəqiqə
+    const PROGRAM_FETCH_TIMEOUT = 8000; // 8 saniyə
+
+    function renderPrograms(programs) {
+      if (!Array.isArray(programs) || programs.length === 0) {
+        programGrid.innerHTML = `
+          <div class="program-error">
+            Hazırda aktiv təlim proqramı mövcud deyil.
+          </div>
+        `;
+        return;
+      }
+
+      programGrid.innerHTML = programs.map((program, index) => {
+        const safeName = String(program.name || "");
+        const safeSlug = String(program.slug || "");
+        const durationText =
+          program.duration !== null && program.duration !== undefined
+            ? `${program.duration} gün`
+            : "Müddət sonra açıqlanacaq";
+
+        return `
+          <div class="radio-card">
+            <input
+              type="radio"
+              id="program_${program.id}"
+              name="program"
+              value="${safeSlug}"
+              ${index === 0 ? "required" : ""}
+            />
+
+            <label for="program_${program.id}">
+              <span class="radio-title">${safeName}</span>
+              <span class="program-meta">${durationText}</span>
+            </label>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function getCachedPrograms() {
+      try {
+        const cachedPrograms = localStorage.getItem(PROGRAM_CACHE_KEY);
+        const cachedAt = Number(
+          localStorage.getItem(PROGRAM_CACHE_TIME_KEY) || 0
+        );
+
+        if (!cachedPrograms || !cachedAt) {
+          return null;
+        }
+
+        const isFresh =
+          Date.now() - cachedAt < PROGRAM_CACHE_TTL;
+
+        if (!isFresh) {
+          return null;
+        }
+
+        return JSON.parse(cachedPrograms);
+
+      } catch (error) {
+        console.warn("Program cache read error:", error);
+        return null;
+      }
+    }
+
+    function saveProgramsToCache(programs) {
+      try {
+        localStorage.setItem(
+          PROGRAM_CACHE_KEY,
+          JSON.stringify(programs)
+        );
+
+        localStorage.setItem(
+          PROGRAM_CACHE_TIME_KEY,
+          String(Date.now())
+        );
+
+      } catch (error) {
+        console.warn("Program cache save error:", error);
+      }
+    }
+
+    async function fetchProgramsFromServer() {
+      const controller = new AbortController();
+
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, PROGRAM_FETCH_TIMEOUT);
+
+      try {
+        const response = await fetch(
+          EDGE_FUNCTION_URL,
+          {
+            method: "GET",
+            signal: controller.signal,
+            cache: "no-store"
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || "Təlim proqramları yüklənə bilmədi."
+          );
+        }
+
+        return result.programs || [];
+
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    async function loadPrograms() {
+      // 1. Əvvəl cache yoxlanılır
+      const cachedPrograms = getCachedPrograms();
+
+      if (cachedPrograms) {
+        renderPrograms(cachedPrograms);
+        return;
+      }
+
+      // 2. Cache yoxdursa serverdən bir dəfə çəkilir
+      programGrid.innerHTML = `
+        <div class="program-loading">
+          Təlim proqramları yüklənir...
+        </div>
+      `;
+
+      try {
+        const programs = await fetchProgramsFromServer();
+
+        renderPrograms(programs);
+        saveProgramsToCache(programs);
+
+      } catch (error) {
+        console.error("Program loading error:", error);
+
+        programGrid.innerHTML = `
+          <div class="program-error">
+            Təlim proqramları yüklənmədi. Səhifəni yeniləyib təkrar cəhd edin.
+          </div>
+        `;
+      }
+    }
+
+
+    function startProgramLoading() {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(
+          () => loadPrograms(),
+          { timeout: 1500 }
+        );
+      } else {
+        setTimeout(loadPrograms, 0);
+      }
+    }
+
+    window.addEventListener("load", startProgramLoading, { once: true });
+
+
+    function showMessage(type, text) {
+      formMessage.className = `message ${type}`;
+      formMessage.textContent = text;
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+
+    function parseBoolean(value) {
+      if (value === "true") return true;
+      if (value === "false") return false;
+      return null;
+    }
+
+    function validateFin(fin) {
+      const normalizedFin = fin.trim().toUpperCase();
+      return /^[A-Z0-9]{7}$/.test(normalizedFin);
+    }
+
+    function validateForm(data) {
+      if (!validateFin(data.fin)) {
+        return {
+          valid: false,
+          message: "FİN 7 simvoldan ibarət olmalıdır."
+        };
+      }
+
+      if (!data.program_slug) {
+        return {
+          valid: false,
+          message: "Zəhmət olmasa, təlim proqramını seçin."
+        };
+      }
+
+      return { valid: true };
+    }
+
+    form.addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      formMessage.className = "message";
+      formMessage.textContent = "";
+
+      const formData = new FormData(form);
+
+      const applicationData = {
+        full_name: formData.get("full_name").trim(),
+        fin: formData.get("fin").trim().toUpperCase(),
+        birth_date: formData.get("birth_date"),
+        email: formData.get("email").trim().toLowerCase(),
+        whatsapp_phone: formData.get("whatsapp_phone").trim(),
+        address: formData.get("address").trim(),
+        education: formData.get("education"),
+        is_student: parseBoolean(formData.get("is_student")),
+        is_employed: parseBoolean(formData.get("is_employed")),
+        has_active_voen: parseBoolean(formData.get("has_active_voen")),
+        attended_dma_course_last_12_months: parseBoolean(
+          formData.get("attended_dma_course_last_12_months")
+        ),
+        program_slug: formData.get("program")
+      };
+
+      const validation = validateForm(applicationData);
+
+      if (!validation.valid) {
+        showMessage("error", validation.message);
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Göndərilir...";
+
+      try {
+        const response = await fetch(
+          EDGE_FUNCTION_URL,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(applicationData)
+          }
+        );
+
+        let result;
+
+        try {
+          result = await response.json();
+        } catch {
+          result = {
+            message: `Server cavabı oxuna bilmədi. HTTP status: ${response.status}`
+          };
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            result.message ||
+            `Müraciət göndərilə bilmədi. HTTP status: ${response.status}`
+          );
+        }
+
+        form.reset();
+
+        if (result.application_id && result.current_status === "ELIGIBLE") {
+          window.location.href = `../exam/index.html?a=${result.application_id}`;
+          return;
+        }
+
+        // Some programs (e.g. Kompüter operatoru) skip the exam entirely —
+        // the eligibility trigger routes them straight to INTERVIEW_INVITED.
+        if (result.application_id && result.current_status === "INTERVIEW_INVITED") {
+          window.location.href = `../interview/index.html?a=${result.application_id}`;
+          return;
+        }
+
+        formCard.style.display = "none";
+        successScreen.classList.add("active");
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+
+      } catch (error) {
+        console.error("Submission error:", error);
+
+        showMessage(
+          "error",
+          error.message ||
+          "Müraciət göndərilərkən xəta baş verdi. Zəhmət olmasa, yenidən cəhd edin."
+        );
+
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Müraciəti göndər";
+      }
+    });
+  </script>
+
+</body>
+</html>

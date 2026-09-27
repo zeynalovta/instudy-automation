@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <base href="/admin/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learnup Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:#127663; --ink:#17232b; --muted:#6d7b83;
+      --line:#dfe7ea; --bg:#f4f7f9; --white:#fff;
+    }
+    body {
+      min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+    }
+    #bootScreen {
+      min-height:100vh; display:grid; place-items:center; color:var(--muted); padding:24px;
+    }
+    .shell { display:none; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+    .shell.ready { display:grid; }
+    aside { background:#102f35; color:#fff; padding:26px 18px; }
+    .brand { font-size:28px; font-weight:800; padding:0 10px 28px; }
+    .brand span { color:#53c7ad; }
+    nav a {
+      display:block; color:rgba(255,255,255,.75); text-decoration:none;
+      padding:12px 14px; border-radius:11px; margin-bottom:6px; font-weight:650; font-size:14px;
+    }
+    nav a.active { background:rgba(255,255,255,.10); color:#fff; }
+    main { min-width:0; }
+    .topbar {
+      min-height:76px; background:#fff; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; padding:14px 28px; gap:20px;
+    }
+    .topbar h1 { font-size:21px; }
+    .user-area { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .logout {
+      border:1px solid var(--line); background:#fff; padding:9px 12px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .content { padding:28px; }
+    .dash-head {
+      display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+      padding:18px 20px; border-bottom:1px solid var(--line);
+    }
+    .dash-head .dash-title { font-size:16px; font-weight:800; }
+    .dash-head .dash-date { color:var(--muted); font-size:12.5px; font-weight:650; }
+    .dash-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+    .dash-kpi {
+      position:relative; background:#fbfcfd; border:1px solid var(--line); border-radius:16px;
+      padding:18px 20px 18px 22px; overflow:hidden;
+    }
+    .dash-kpi::before {
+      content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--green);
+    }
+    .dash-kpi.pending::before { background:#d5dfe3; }
+    .dash-kpi span {
+      color:var(--muted); font-size:11.5px; font-weight:800;
+      text-transform:uppercase; letter-spacing:.04em;
+    }
+    .dash-kpi strong { display:block; font-size:32px; font-weight:800; margin-top:8px; color:var(--ink); }
+    .dash-kpi.pending strong { color:#c3cdd1; }
+    .dash-kpi small { display:block; color:#9aa7ac; font-size:11px; font-weight:650; margin-top:6px; line-height:1.4; }
+    table.dash-table { width:100%; border-collapse:collapse; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .dash-table th, .dash-table td { text-align:right; padding:11px 16px; border-bottom:1px solid #edf1f3; font-size:13px; }
+    .dash-table th:first-child, .dash-table td:first-child { text-align:left; }
+    .dash-table td:first-child { font-weight:700; }
+    .dash-table th {
+      color:#51616a; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; background:#f4f7f9;
+    }
+    .dash-table tbody tr:nth-child(even) td { background:#fbfdfd; }
+    .dash-table tbody tr:hover td { background:#f1f8f6; }
+    .dash-table td:nth-child(2) { color:#176b58; font-weight:800; }
+    .dash-total-row td {
+      font-weight:800; background:#eefaf6 !important; color:#0f5c4d;
+      border-top:2px solid #cfe9e1; border-bottom:none;
+    }
+    @media (max-width:700px) {
+      .dash-kpis { grid-template-columns:1fr; }
+      .dash-table th, .dash-table td { padding:9px 10px; font-size:12px; }
+    }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+    .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); }
+    .filters {
+      display:grid; grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(160px,.8fr));
+      gap:10px;
+    }
+    input, select {
+      width:100%; border:1px solid #d5dfe3; border-radius:11px; padding:11px 12px;
+      font:inherit; background:#fff;
+    }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    #candidateTable { min-width:2050px; }
+    th,td {
+      text-align:left; padding:8px 10px; border-bottom:1px solid #edf1f3;
+      font-size:12.5px; vertical-align:middle;
+    }
+    th {
+      color:#6d7b83; font-size:11.5px; text-transform:uppercase;
+      letter-spacing:.04em; background:#fbfcfd; user-select:none;
+    }
+    th[data-sort] { cursor:pointer; white-space:nowrap; }
+    th[data-sort]:hover { color:var(--ink); }
+    .sort-arrow { display:inline-block; width:10px; }
+    tr:hover td { background:#fbfdfd; }
+    .score-input, .note-input, .mini-select, .date-input {
+      border:1px solid #d5dfe3; border-radius:8px; padding:5px 7px;
+      font:inherit; font-size:12.5px; background:#fff;
+    }
+    .score-input { width:60px; }
+    .note-input { width:150px; }
+    .mini-select { width:auto; cursor:pointer; }
+    .date-input { width:170px; }
+    .score-input:disabled, .note-input:disabled, .mini-select:disabled, .date-input:disabled { opacity:.6; cursor:not-allowed; }
+    .badge {
+      display:inline-flex; padding:6px 9px; border-radius:999px;
+      font-size:11px; font-weight:800; white-space:nowrap;
+    }
+    .green { background:#e8f7f3; color:#176b58; }
+    .yellow { background:#fff7dd; color:#8a6812; }
+    .red { background:#fff0f0; color:#a33d3d; }
+    .gray { background:#f0f3f5; color:#607078; }
+    .status-select {
+      width:auto; border:none; border-radius:999px; padding:6px 26px 6px 9px;
+      font-size:11px; font-weight:800; cursor:pointer;
+    }
+    .status-select:disabled { opacity:.6; cursor:wait; }
+    .loading,.empty,.error { padding:36px 20px; text-align:center; color:var(--muted); }
+    .message { padding:11px 13px; border-radius:11px; font-size:13px; display:none; }
+    .message.error { display:block; color:#9f3131; background:#fff1f1; border:1px solid #ffd7d7; }
+    .message.success { display:block; color:#176b58; background:#eefaf6; border:1px solid #ccece3; }
+    .error { color:#9f3131; }
+    @media (max-width:980px) {
+      .shell.ready { grid-template-columns:1fr; }
+      aside { display:none; }
+      .stats { grid-template-columns:repeat(2,1fr); }
+      .filters { grid-template-columns:1fr; }
+      .content { padding:18px; }
+      .topbar { padding:14px 18px; }
+    }
+    @media (max-width:560px) {
+      .stats { grid-template-columns:1fr 1fr; }
+      .user-area span { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bootScreen" style="
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    background:#f4f7f9;
+    color:#6d7b83;
+    padding:24px;
+  ">
+    <div>Admin panel yoxlanılır...</div>
+  </div>
+
+  <div id="appShell" class="shell">
+    <aside>
+      <div class="brand">Learn<span>up</span></div>
+      <nav>
+        <a class="active" href="/admin/index.html">Namizədlər</a>
+        <a href="/admin/exams/index.html">İmtahanlar</a>
+        <a href="/admin/interviews/index.html">Müsahibələr</a>
+        <a href="/admin/groups/index.html">DMA qrupları</a>
+        <a href="/admin/attendance/index.html">Davamiyyət</a>
+        <a href="/admin/graduates/index.html">Məzunlar</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <h1>Namizədlər</h1>
+        <div class="user-area">
+          <span id="userEmail"></span>
+          <button id="logoutButton" class="logout">Çıxış</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="panel" style="margin-bottom:22px;">
+          <div class="dash-head">
+            <span class="dash-title">Ümumi Dashboard</span>
+            <span class="dash-date" id="dashDate"></span>
+          </div>
+          <div class="panel-body" style="padding:20px;">
+            <div class="dash-kpis">
+              <div class="dash-kpi"><span>Aktiv qrup sayı</span><strong id="dashGroupCount">—</strong></div>
+              <div class="dash-kpi"><span>Aktiv tələbə sayı</span><strong id="dashActiveStudents">—</strong></div>
+              <div class="dash-kpi"><span>Orta davamiyyət faizi</span><strong id="dashAttendance">—</strong></div>
+            </div>
+            <div class="table-wrap">
+              <table class="dash-table">
+                <thead>
+                  <tr>
+                    <th>Peşə adı</th>
+                    <th>Təlimdədir</th>
+                    <th>Prosesdə olan</th>
+                    <th>Bu gün qeydiyyatdan keçən</th>
+                    <th>Dünən qeydiyyatdan keçən</th>
+                  </tr>
+                </thead>
+                <tbody id="dashBody"></tbody>
+                <tfoot>
+                  <tr class="dash-total-row">
+                    <td>Total</td>
+                    <td id="dashTotalTraining">—</td>
+                    <td id="dashTotalProcess">—</td>
+                    <td id="dashTotalToday">—</td>
+                    <td id="dashTotalYesterday">—</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="filters">
+              <input id="searchInput" type="search" placeholder="Ad, telefon və ya FİN üzrə axtar...">
+              <select id="programFilter">
+                <option value="">Bütün proqramlar</option>
+              </select>
+              <select id="eligibilityFilter">
+                <option value="">Bütün uyğunluq statusları</option>
+                <option value="PRELIMINARILY_ELIGIBLE">İlkin uyğun</option>
+                <option value="MANUAL_REVIEW_REQUIRED">Manual yoxlama</option>
+                <option value="NOT_ELIGIBLE">Uyğun deyil</option>
+                <option value="NEW">Yeni</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="tableMessage" class="message" style="margin:14px 20px 0;"></div>
+          <p style="color:var(--muted);font-size:12px;margin:14px 20px 0;">
+            Boz (deaktiv) xanalar ardıcıllıqla açılır: Bal → imtahan tarixi tələb edir; Müsahibə tarixi → imtahandan keçməyi (30+); Gəldi? → müsahibə tarixini; Müsahibə nəticəsi → "Gəldi?" cavabını; DMA/"Təlimdədir" → müsahibə nəticəsinin "Keçdi" olmasını tələb edir.
+          </p>
+          <div class="table-wrap">
+            <div id="stateMessage" class="loading">Məlumatlar yüklənir...</div>
+
+            <table id="candidateTable" hidden>
+              <thead>
+                <tr>
+                  <th data-sort="name">Namizəd<span class="sort-arrow"></span></th>
+                  <th>FİN</th>
+                  <th>Telefon</th>
+                  <th data-sort="program">Proqram<span class="sort-arrow"></span></th>
+                  <th data-sort="eligibility">Uyğunluq<span class="sort-arrow"></span></th>
+                  <th data-sort="examDate">İmtahan tarixi<span class="sort-arrow"></span></th>
+                  <th data-sort="score">Bal<span class="sort-arrow"></span></th>
+                  <th data-sort="interviewDate">Müsahibə tarixi<span class="sort-arrow"></span></th>
+                  <th>Gəldi?</th>
+                  <th>Müsahibə nəticəsi</th>
+                  <th>DMA statusu</th>
+                  <th>Qrup</th>
+                  <th data-sort="status">Ümumi gedişat<span class="sort-arrow"></span></th>
+                  <th>Qeyd</th>
+                  <th data-sort="createdAt">Müraciət tarixi<span class="sort-arrow"></span></th>
+                </tr>
+              </thead>
+              <tbody id="candidateBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const bootScreen = document.getElementById("bootScreen");
+    const appShell = document.getElementById("appShell");
+    const stateMessage = document.getElementById("stateMessage");
+    const table = document.getElementById("candidateTable");
+    const tbody = document.getElementById("candidateBody");
+    const searchInput = document.getElementById("searchInput");
+    const programFilter = document.getElementById("programFilter");
+    const eligibilityFilter = document.getElementById("eligibilityFilter");
+
+    let applications = [];
+    let trainingGroups = [];
+    let attendanceRecords = [];
+    let sortState = { key: null, dir: 1 };
+
+    const statusLabel = {
+      NEW_APPLICATION:"Yeni müraciət", ELIGIBLE:"Uyğundur",
+      MANUAL_REVIEW_REQUIRED:"Manual yoxlama", NOT_ELIGIBLE:"Uyğun deyil",
+      EXAM_BOOKED:"İmtahan rezervasiyası", EXAM_ATTENDED:"İmtahanda iştirak etdi",
+      EXAM_NO_SHOW:"İmtahana gəlmədi", EXAM_FAILED:"İmtahandan keçmədi",
+      EXAM_PASSED:"İmtahandan keçdi", INTERVIEW_INVITED:"Müsahibəyə dəvət",
+      INTERVIEW_BOOKED:"Müsahibə rezervasiyası", INTERVIEW_ATTENDED:"Müsahibədə iştirak etdi",
+      INTERVIEW_NO_SHOW:"Müsahibəyə gəlmədi", INTERVIEW_FAILED:"Müsahibədən keçmədi",
+      RESERVE_LIST:"Ehtiyat siyahısı", INTERVIEW_PASSED:"Müsahibədən keçdi",
+      SUBMITTED_TO_DMA:"DMA-ya göndərildi", DMA_APPROVED:"DMA təsdiqlədi",
+      DMA_REJECTED:"DMA rədd etdi",
+      ENROLLED:"Qəbul edildi", EXPELLED:"Xaric edildi", GRADUATED:"Məzun oldu",
+      DECLINED:"İmtina edildi"
+    };
+
+    const eligibilityLabel = {
+      NEW:"Yeni", PRELIMINARILY_ELIGIBLE:"İlkin uyğun",
+      MANUAL_REVIEW_REQUIRED:"Manual yoxlama", NOT_ELIGIBLE:"Uyğun deyil"
+    };
+
+    // "Ümumi gedişat" is deliberately narrow — 5 buckets instead of the full
+    // status list. ENROLLED/DECLINED are the two manual calls staff make via
+    // this select; EXAM_FAILED/INTERVIEW_FAILED can also be picked manually
+    // here, but are normally just a *display* of what exam_score/
+    // interview_result already show — see stageBucket().
+    const stageLabel = {
+      EXAM_FAILED: "İmtahandan kəsilib",
+      INTERVIEW_FAILED: "Müsahibədən kəsilib",
+      ENROLLED: "Təlimdədir",
+      DECLINED: "İmtina edildi",
+    };
+
+    // Derived from several independent columns (not just current_status),
+    // and an explicit manual pick (ENROLLED/DECLINED/EXAM_FAILED/
+    // INTERVIEW_FAILED on current_status) always wins over the automatic
+    // reading — so setting "Ümumi gedişat" to e.g. İmtina edildi doesn't get
+    // silently overridden by an older exam/interview result.
+    function stageBucket(item) {
+      const status = item.current_status;
+      if (status === "ENROLLED" || status === "GRADUATED") return "ENROLLED";
+      if (status === "DECLINED" || status === "NOT_ELIGIBLE" || status === "EXPELLED") return "DECLINED";
+      if (status === "EXAM_FAILED") return "EXAM_FAILED";
+      if (status === "INTERVIEW_FAILED") return "INTERVIEW_FAILED";
+      if (item.dma_status === "REJECTED") return "DECLINED";
+      if (item.interview_result === "FAILED") return "INTERVIEW_FAILED";
+      if (item.exam_score !== null && item.exam_score < 30) return "EXAM_FAILED";
+      return "";
+    }
+
+    const dmaLabel = {
+      SUBMITTED: "Göndərildi",
+      APPROVED: "Təsdiqləndi",
+      REJECTED: "Rədd edildi",
+    };
+
+    // Pipeline validations: interview fields require the exam to actually be
+    // passed (exam_scheduled_at + exam_score >= 30) — or, for programs that
+    // skip the exam entirely (e.g. Kompüter operatoru), current_status
+    // already shows them routed straight to interview with no exam data at
+    // all. DMA/"Təlimdədir" require a passed interview.
+    const EXAM_CLEARED_STATUSES = [
+      "INTERVIEW_INVITED", "INTERVIEW_BOOKED", "INTERVIEW_PASSED", "INTERVIEW_FAILED",
+      "RESERVE_LIST", "SUBMITTED_TO_DMA", "DMA_APPROVED", "DMA_REJECTED", "ENROLLED", "GRADUATED",
+    ];
+
+    function canManageInterview(item) {
+      if (item.exam_scheduled_at || item.exam_score !== null) {
+        return !!item.exam_scheduled_at && item.exam_score !== null && item.exam_score >= 30;
+      }
+      return EXAM_CLEARED_STATUSES.includes(item.current_status);
+    }
+
+    function canManageDma(item) {
+      return item.interview_result === "PASSED";
+    }
+
+    function isAdminUser(user) {
+      return user?.app_metadata?.role === "admin";
+    }
+
+    // Fail closed: only a claim that is exactly one of these known values
+    // is trusted. Missing/null/empty/mistyped staff_scope now resolves to
+    // "no_access" instead of silently becoming "all" — the previous
+    // fallback here gave a blank claim full super-admin access.
+    const VALID_STAFF_SCOPES = ["dma", "all"];
+    function getStaffScope(user) {
+      const scope = user?.app_metadata?.staff_scope;
+      return VALID_STAFF_SCOPES.includes(scope) ? scope : "no_access";
+    }
+
+
+    function renderAccessGate(title, message) {
+      bootScreen.innerHTML = `
+        <div style="
+          width:min(100%,460px);
+          background:#fff;
+          border:1px solid #dfe7ea;
+          border-radius:20px;
+          padding:30px;
+          text-align:center;
+          box-shadow:0 18px 45px rgba(20,46,55,.08);
+        ">
+          <div style="font-size:28px;font-weight:800;margin-bottom:10px;">
+            Learn<span style="color:#168a74;">up</span>
+          </div>
+          <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
+          <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">
+            ${escapeHtml(message)}
+          </p>
+          <a href="/admin/login/index.html" style="
+            display:inline-block;
+            background:#127663;
+            color:#fff;
+            text-decoration:none;
+            padding:13px 18px;
+            border-radius:12px;
+            font-weight:800;
+          ">Giriş səhifəsinə keç</a>
+        </div>
+      `;
+    }
+
+    function badgeClass(value) {
+      if (value === "PRELIMINARILY_ELIGIBLE" || value === "ELIGIBLE" || value === "EXAM_PASSED" || value === "INTERVIEW_PASSED" || value === "DMA_APPROVED" || value === "ENROLLED" || value === "GRADUATED") return "green";
+      if (value === "MANUAL_REVIEW_REQUIRED" || value === "SUBMITTED_TO_DMA") return "yellow";
+      if (value === "NOT_ELIGIBLE" || value === "EXAM_FAILED" || value === "EXAM_NO_SHOW" || value === "INTERVIEW_NO_SHOW" || value === "INTERVIEW_FAILED" || value === "DMA_REJECTED" || value === "EXPELLED" || value === "DECLINED") return "red";
+      return "gray";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      return new Intl.DateTimeFormat("az-AZ", {
+        day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"
+      }).format(new Date(value));
+    }
+
+    function toDateTimeLocalValue(value) {
+      if (!value) return "";
+      const d = new Date(value);
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    const sorters = {
+      name: item => (item.candidates?.full_name || "").toLocaleLowerCase("az"),
+      program: item => (item.programs?.name || "").toLocaleLowerCase("az"),
+      eligibility: item => item.eligibility_status || "",
+      status: item => item.current_status || "",
+      score: item => item.exam_score ?? -Infinity,
+      examDate: item => item.exam_scheduled_at || "",
+      interviewDate: item => item.interview_scheduled_at || "",
+      createdAt: item => item.created_at || "",
+    };
+
+    function renderDashboard() {
+      document.getElementById("dashDate").textContent = new Intl.DateTimeFormat("az-AZ", {
+        day: "2-digit", month: "long", year: "numeric", weekday: "long"
+      }).format(new Date());
+
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      const activeGroupCount = trainingGroups.filter(g => !g.ends_at || g.ends_at >= todayIso).length;
+      document.getElementById("dashGroupCount").textContent = activeGroupCount;
+
+      document.getElementById("dashAttendance").textContent = attendanceRecords.length
+        ? `${Math.round((attendanceRecords.filter(r => r.attended).length / attendanceRecords.length) * 100)}%`
+        : "—";
+
+      const byProgram = new Map();
+      for (const item of applications) {
+        const name = item.programs?.name || "Naməlum";
+        if (!byProgram.has(name)) {
+          byProgram.set(name, { training: 0, inProcess: 0, today: 0, yesterday: 0 });
+        }
+        const row = byProgram.get(name);
+        const bucket = stageBucket(item.current_status);
+
+        if (bucket === "ENROLLED") row.training++;
+        else if (bucket === "") row.inProcess++;
+
+        const createdDay = new Date(item.created_at).toDateString();
+        if (createdDay === today) row.today++;
+        if (createdDay === yesterday) row.yesterday++;
+      }
+
+      const rows = [...byProgram.entries()].sort((a, b) => a[0].localeCompare(b[0], "az"));
+      const totals = { training: 0, inProcess: 0, today: 0, yesterday: 0 };
+
+      document.getElementById("dashBody").innerHTML = rows.map(([name, r]) => {
+        totals.training += r.training;
+        totals.inProcess += r.inProcess;
+        totals.today += r.today;
+        totals.yesterday += r.yesterday;
+
+        return `
+          <tr>
+            <td>${escapeHtml(name)}</td>
+            <td>${r.training}</td>
+            <td>${r.inProcess}</td>
+            <td>${r.today}</td>
+            <td>${r.yesterday}</td>
+          </tr>
+        `;
+      }).join("") || `<tr><td colspan="5" class="empty">Məlumat yoxdur.</td></tr>`;
+
+      document.getElementById("dashTotalTraining").textContent = totals.training;
+      document.getElementById("dashTotalProcess").textContent = totals.inProcess;
+      document.getElementById("dashTotalToday").textContent = totals.today;
+      document.getElementById("dashTotalYesterday").textContent = totals.yesterday;
+
+      document.getElementById("dashActiveStudents").textContent = totals.training;
+    }
+
+    function populatePrograms() {
+      const seen = new Map();
+
+      applications.forEach(item => {
+        if (item.programs && !seen.has(item.programs.id)) {
+          seen.set(item.programs.id, item.programs);
+        }
+      });
+
+      for (const program of seen.values()) {
+        const option = document.createElement("option");
+        option.value = String(program.id);
+        option.textContent = program.name;
+        programFilter.appendChild(option);
+      }
+    }
+
+    function renderTable() {
+      const search = searchInput.value.trim().toLocaleLowerCase("az");
+      const selectedProgram = programFilter.value;
+      const selectedEligibility = eligibilityFilter.value;
+
+      const filtered = applications.filter(item => {
+        const c = item.candidates || {};
+        const haystack = [c.full_name, c.fin, c.whatsapp_phone]
+          .join(" ").toLocaleLowerCase("az");
+
+        return (!search || haystack.includes(search))
+          && (!selectedProgram || String(item.program_id) === selectedProgram)
+          && (!selectedEligibility || item.eligibility_status === selectedEligibility);
+      });
+
+      if (sortState.key) {
+        const getValue = sorters[sortState.key];
+        filtered.sort((a, b) => {
+          const va = getValue(a);
+          const vb = getValue(b);
+          if (va < vb) return -1 * sortState.dir;
+          if (va > vb) return 1 * sortState.dir;
+          return 0;
+        });
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const c = item.candidates || {};
+        const p = item.programs || {};
+
+        const examScheduled = !!item.exam_scheduled_at;
+        const examCleared = canManageInterview(item);
+        const interviewScheduled = !!item.interview_scheduled_at;
+        const attendanceKnown = item.interview_attended !== null && item.interview_attended !== undefined;
+        const resultKnown = item.interview_result !== null && item.interview_result !== undefined;
+        const dmaCleared = canManageDma(item);
+
+        const scoreLocked = !examScheduled;
+        const attendanceLocked = !examCleared || !interviewScheduled;
+        const resultLocked = !examCleared || !interviewScheduled || !attendanceKnown;
+        const dmaLocked = !dmaCleared;
+
+        const scoreLockTitle = "Əvvəlcə imtahan tarixi təyin edilməlidir";
+        const interviewLockTitle = examCleared
+          ? "Əvvəlcə müsahibə tarixi təyin edilməlidir"
+          : "Əvvəlcə imtahandan keçməlidir (bal 30+) — və ya müsahibəyə birbaşa dəvət olunmuş olmalıdır";
+        const resultLockTitle = attendanceLocked
+          ? interviewLockTitle
+          : "Əvvəlcə \"Gəldi?\" sualı cavablandırılmalıdır";
+        const dmaLockTitle = "Əvvəlcə müsahibə nəticəsi \"Keçdi\" olmalıdır";
+
+        return `
+          <tr>
+            <td><a href="./candidates/index.html?id=${item.id}" style="color:var(--ink);font-weight:800;text-decoration:none;">${escapeHtml(c.full_name || "—")}</a></td>
+            <td>${escapeHtml(c.fin || "—")}</td>
+            <td>${escapeHtml(c.whatsapp_phone || "—")}</td>
+            <td>${escapeHtml(p.name || "—")}</td>
+            <td><span class="badge ${badgeClass(item.eligibility_status)}">${escapeHtml(eligibilityLabel[item.eligibility_status] || item.eligibility_status)}</span></td>
+            <td>
+              <input type="datetime-local" class="date-input exam-date-input" data-id="${item.id}"
+                value="${toDateTimeLocalValue(item.exam_scheduled_at)}" data-previous-value="${item.exam_scheduled_at || ""}">
+            </td>
+            <td>
+              <input type="number" class="score-input" data-id="${item.id}"
+                value="${item.exam_score ?? ""}" data-previous-value="${item.exam_score ?? ""}" placeholder="—"
+                ${scoreLocked ? `disabled title="${escapeHtml(scoreLockTitle)}"` : ""}>
+            </td>
+            <td>
+              <input type="datetime-local" class="date-input interview-date-input" data-id="${item.id}"
+                value="${toDateTimeLocalValue(item.interview_scheduled_at)}" data-previous-value="${item.interview_scheduled_at || ""}"
+                ${!examCleared ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
+            </td>
+            <td>
+              <select class="mini-select attendance-select" data-id="${item.id}" data-previous-value="${item.interview_attended ?? ""}"
+                ${attendanceLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
+                <option value="" disabled ${!attendanceKnown ? "selected" : ""}>—</option>
+                <option value="YES" ${item.interview_attended === "YES" ? "selected" : ""}>Bəli</option>
+                <option value="NO" ${item.interview_attended === "NO" ? "selected" : ""}>Xeyr</option>
+              </select>
+            </td>
+            <td>
+              <select class="mini-select result-select" data-id="${item.id}" data-previous-value="${item.interview_result ?? ""}"
+                ${resultLocked ? `disabled title="${escapeHtml(resultLockTitle)}"` : ""}>
+                <option value="" disabled ${!resultKnown ? "selected" : ""}>—</option>
+                <option value="PASSED" ${item.interview_result === "PASSED" ? "selected" : ""}>Keçdi</option>
+                <option value="FAILED" ${item.interview_result === "FAILED" ? "selected" : ""}>Keçmədi</option>
+                <option value="RESERVE" ${item.interview_result === "RESERVE" ? "selected" : ""}>Ehtiyat</option>
+              </select>
+            </td>
+            <td>
+              <select class="mini-select dma-select" data-id="${item.id}" data-previous-value="${item.dma_status ?? ""}"
+                ${dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>
+                <option value="" disabled ${!item.dma_status ? "selected" : ""}>—</option>
+                ${Object.entries(dmaLabel).map(([value, label]) => `
+                  <option value="${value}" ${item.dma_status === value ? "selected" : ""}>${escapeHtml(label)}</option>
+                `).join("")}
+              </select>
+            </td>
+            <td>
+              <select class="mini-select group-select" data-id="${item.id}" data-previous-value="${item.training_group_id ?? ""}"
+                ${dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>
+                <option value="" ${!item.training_group_id ? "selected" : ""}>—</option>
+                ${trainingGroups.filter(g => g.program_id === item.program_id).map(g => `
+                  <option value="${g.id}" ${item.training_group_id === g.id ? "selected" : ""}>${escapeHtml(g.name)}</option>
+                `).join("")}
+              </select>
+            </td>
+            <td>
+              <select class="status-select stage-select ${badgeClass(item.current_status)}" data-id="${item.id}" data-previous-value="${item.current_status}">
+                <option value="" disabled ${!stageBucket(item) ? "selected" : ""}>Prosesdədir</option>
+                ${Object.entries(stageLabel).map(([value, label]) => `
+                  <option value="${value}" ${stageBucket(item) === value ? "selected" : ""}
+                    ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
+                `).join("")}
+              </select>
+            </td>
+            <td>
+              <input type="text" class="note-input" data-id="${item.id}"
+                value="${escapeHtml(item.general_note || "")}" data-previous-value="${escapeHtml(item.general_note || "")}" placeholder="Qeyd əlavə et...">
+            </td>
+            <td>${formatDate(item.created_at)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      stateMessage.hidden = true;
+      table.hidden = false;
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="15" class="empty">Uyğun nəticə tapılmadı.</td></tr>`;
+      }
+    }
+
+    const tableMessage = document.getElementById("tableMessage");
+
+    function showTableMessage(type, text) {
+      tableMessage.className = "message " + type;
+      tableMessage.textContent = text;
+    }
+
+    async function updateCurrentStatus(applicationId, newStatus, selectEl) {
+      const previousValue = selectEl.dataset.previousValue;
+      selectEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ current_status: newStatus })
+        .eq("id", applicationId);
+
+      if (error) {
+        selectEl.disabled = false;
+        console.error("Status update error:", error);
+        showTableMessage("error", "Status yenilənmədi: " + error.message);
+        selectEl.value = previousValue;
+        return;
+      }
+
+      const item = applications.find(a => a.id === applicationId);
+      if (item) item.current_status = newStatus;
+
+      showTableMessage("success", "Status yeniləndi: " + (statusLabel[newStatus] || newStatus));
+
+      // Other cells (Bal, Gəldi?, Təlimdədir gating, etc.) may need to
+      // lock/unlock based on the new stage — re-render the whole row set.
+      renderTable();
+    }
+
+    async function updateInterviewAttended(applicationId, value, selectEl) {
+      const previousValue = selectEl.dataset.previousValue;
+      selectEl.disabled = true;
+
+      // Not attending means there's no result to report — force it to
+      // Keçmədi so staff can't leave a contradictory Keçdi/Ehtiyat picked
+      // for someone who never showed up.
+      const updatePayload = { interview_attended: value || null };
+      if (value === "NO") updatePayload.interview_result = "FAILED";
+
+      const { error } = await client
+        .from("dma_applications")
+        .update(updatePayload)
+        .eq("id", applicationId);
+
+      if (error) {
+        selectEl.disabled = false;
+        console.error("Interview attendance update error:", error);
+        showTableMessage("error", "\"Gəldi?\" yenilənmədi: " + error.message);
+        selectEl.value = previousValue;
+        return;
+      }
+
+      const item = applications.find(a => a.id === applicationId);
+      if (item) {
+        item.interview_attended = value || null;
+        if (value === "NO") item.interview_result = "FAILED";
+      }
+
+      showTableMessage(
+        "success",
+        value === "NO"
+          ? "\"Gəldi?\" saxlanıldı: Xeyr. Müsahibə nəticəsi avtomatik \"Keçmədi\" oldu."
+          : "\"Gəldi?\" saxlanıldı: Bəli"
+      );
+      renderTable();
+    }
+
+    async function updateInterviewResult(applicationId, value, selectEl) {
+      const previousValue = selectEl.dataset.previousValue;
+      selectEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ interview_result: value || null })
+        .eq("id", applicationId);
+
+      if (error) {
+        selectEl.disabled = false;
+        console.error("Interview result update error:", error);
+        showTableMessage("error", "Müsahibə nəticəsi yenilənmədi: " + error.message);
+        selectEl.value = previousValue;
+        return;
+      }
+
+      const item = applications.find(a => a.id === applicationId);
+      if (item) item.interview_result = value || null;
+
+      showTableMessage("success", "Müsahibə nəticəsi saxlanıldı.");
+      renderTable();
+    }
+
+    async function updateDmaStatus(applicationId, value, selectEl) {
+      const previousValue = selectEl.dataset.previousValue;
+      selectEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ dma_status: value || null })
+        .eq("id", applicationId);
+
+      if (error) {
+        selectEl.disabled = false;
+        console.error("DMA status update error:", error);
+        showTableMessage("error", "DMA statusu yenilənmədi: " + error.message);
+        selectEl.value = previousValue;
+        return;
+      }
+
+      const item = applications.find(a => a.id === applicationId);
+      if (item) item.dma_status = value || null;
+
+      showTableMessage("success", "DMA statusu saxlanıldı: " + (dmaLabel[value] || value));
+      renderTable();
+    }
+
+    async function updateExamScore(applicationId, inputEl) {
+      const previousValue = inputEl.dataset.previousValue;
+      const newValue = inputEl.value === "" ? null : Number(inputEl.value);
+      inputEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ exam_score: newValue })
+        .eq("id", applicationId);
+
+      if (error) {
+        inputEl.disabled = false;
+        console.error("Score update error:", error);
+        showTableMessage("error", "Bal yenilənmədi: " + error.message);
+        inputEl.value = previousValue;
+        return;
+      }
+
+      // exam_score can auto-route current_status (see the DB trigger) —
+      // reload so the status column always shows what's actually stored.
+      const autoRouted = newValue !== null;
+      await loadData();
+      showTableMessage(
+        "success",
+        autoRouted ? `Bal saxlanıldı (${newValue}). Status avtomatik yeniləndi.` : "Bal saxlanıldı."
+      );
+    }
+
+    async function updateNote(applicationId, inputEl) {
+      const previousValue = inputEl.dataset.previousValue;
+      const newValue = inputEl.value.trim() === "" ? null : inputEl.value.trim();
+      inputEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ general_note: newValue })
+        .eq("id", applicationId);
+
+      inputEl.disabled = false;
+
+      if (error) {
+        console.error("Note update error:", error);
+        showTableMessage("error", "Qeyd yenilənmədi: " + error.message);
+        inputEl.value = previousValue;
+        return;
+      }
+
+      inputEl.dataset.previousValue = inputEl.value;
+      const item = applications.find(a => a.id === applicationId);
+      if (item) item.general_note = newValue;
+      showTableMessage("success", "Qeyd saxlanıldı.");
+    }
+
+    async function updateScheduledDate(applicationId, field, inputEl) {
+      const previousValue = inputEl.dataset.previousValue;
+      const newValue = inputEl.value ? new Date(inputEl.value).toISOString() : null;
+      inputEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ [field]: newValue })
+        .eq("id", applicationId);
+
+      inputEl.disabled = false;
+
+      if (error) {
+        console.error("Scheduled date update error:", error);
+        showTableMessage("error", "Tarix yenilənmədi: " + error.message);
+        inputEl.value = toDateTimeLocalValue(previousValue);
+        return;
+      }
+
+      inputEl.dataset.previousValue = newValue || "";
+      const item = applications.find(a => a.id === applicationId);
+      if (item) item[field] = newValue;
+      showTableMessage("success", "Tarix saxlanıldı.");
+
+      // Setting an exam/interview date can unlock other cells in the row
+      // (Bal, Gəldi?, etc.) — re-render so that takes effect immediately.
+      renderTable();
+    }
+
+    async function updateTrainingGroup(applicationId, groupId, selectEl) {
+      const previousValue = selectEl.dataset.previousValue;
+      selectEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ training_group_id: groupId || null })
+        .eq("id", applicationId);
+
+      selectEl.disabled = false;
+
+      if (error) {
+        console.error("Group update error:", error);
+        showTableMessage("error", "Qrup yenilənmədi: " + error.message);
+        selectEl.value = previousValue;
+        return;
+      }
+
+      selectEl.dataset.previousValue = groupId;
+      const item = applications.find(a => a.id === applicationId);
+      if (item) item.training_group_id = groupId ? Number(groupId) : null;
+
+      const group = trainingGroups.find(g => g.id === Number(groupId));
+      showTableMessage("success", group ? `Qrupa təyin edildi: ${group.name}` : "Qrup təyinatı silindi.");
+    }
+
+    tbody.addEventListener("change", event => {
+      const statusEl = event.target.closest(".status-select");
+      if (statusEl) {
+        const applicationId = Number(statusEl.dataset.id);
+        updateCurrentStatus(applicationId, statusEl.value, statusEl);
+        return;
+      }
+
+      const attendanceEl = event.target.closest(".attendance-select");
+      if (attendanceEl) {
+        updateInterviewAttended(Number(attendanceEl.dataset.id), attendanceEl.value, attendanceEl);
+        return;
+      }
+
+      const resultEl = event.target.closest(".result-select");
+      if (resultEl) {
+        updateInterviewResult(Number(resultEl.dataset.id), resultEl.value, resultEl);
+        return;
+      }
+
+      const dmaEl = event.target.closest(".dma-select");
+      if (dmaEl) {
+        updateDmaStatus(Number(dmaEl.dataset.id), dmaEl.value, dmaEl);
+        return;
+      }
+
+      const groupEl = event.target.closest(".group-select");
+      if (groupEl) {
+        updateTrainingGroup(Number(groupEl.dataset.id), groupEl.value, groupEl);
+        return;
+      }
+
+      const examDateEl = event.target.closest(".exam-date-input");
+      if (examDateEl) {
+        updateScheduledDate(Number(examDateEl.dataset.id), "exam_scheduled_at", examDateEl);
+        return;
+      }
+
+      const interviewDateEl = event.target.closest(".interview-date-input");
+      if (interviewDateEl) {
+        updateScheduledDate(Number(interviewDateEl.dataset.id), "interview_scheduled_at", interviewDateEl);
+        return;
+      }
+
+      const scoreEl = event.target.closest(".score-input");
+      if (scoreEl) {
+        updateExamScore(Number(scoreEl.dataset.id), scoreEl);
+        return;
+      }
+
+      const noteEl = event.target.closest(".note-input");
+      if (noteEl) {
+        updateNote(Number(noteEl.dataset.id), noteEl);
+      }
+    });
+
+    document.querySelectorAll("th[data-sort]").forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.sort;
+        sortState.dir = sortState.key === key ? sortState.dir * -1 : 1;
+        sortState.key = key;
+
+        document.querySelectorAll("th[data-sort] .sort-arrow").forEach(el => el.textContent = "");
+        th.querySelector(".sort-arrow").textContent = sortState.dir === 1 ? "▲" : "▼";
+
+        renderTable();
+      });
+    });
+
+    async function loadData() {
+      const [applicationsResult, groupsResult, attendanceResult] = await Promise.all([
+        client
+          .from("dma_applications")
+          .select(`
+            id,
+            candidate_id,
+            program_id,
+            eligibility_status,
+            current_status,
+            exam_score,
+            exam_scheduled_at,
+            interview_scheduled_at,
+            interview_attended,
+            interview_result,
+            dma_status,
+            general_note,
+            training_group_id,
+            created_at,
+            dma_candidates!dma_applications_candidate_id_fkey (
+              id,
+              full_name,
+              fin,
+              whatsapp_phone,
+              email
+            ),
+            dma_programs!dma_applications_program_id_fkey (
+              id,
+              name,
+              slug
+            )
+          `)
+          .order("created_at", { ascending:false }),
+        client
+          .from("dma_training_groups")
+          .select("id, program_id, name, ends_at"),
+        client
+          .from("dma_attendance_records")
+          .select("attended"),
+      ]);
+
+      if (applicationsResult.error) {
+        console.error("Load data error:", applicationsResult.error);
+        stateMessage.className = "error";
+        stateMessage.textContent = "Məlumatlar yüklənmədi: " + applicationsResult.error.message;
+        return;
+      }
+
+      if (groupsResult.error) {
+        console.error("Load groups error:", groupsResult.error);
+      }
+
+      if (attendanceResult.error) {
+        console.error("Load attendance error:", attendanceResult.error);
+      }
+
+      applications = applicationsResult.data || [];
+      trainingGroups = groupsResult.data || [];
+      attendanceRecords = attendanceResult.data || [];
+      renderDashboard();
+      populatePrograms();
+      renderTable();
+    }
+
+    async function init() {
+      try {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        if (!sessionData.session) {
+          renderAccessGate(
+            "Admin girişi tələb olunur",
+            "Namizədlər panelini görmək üçün əvvəlcə sistemə daxil olun."
+          );
+          return;
+        }
+
+        // getUser verifies the access token with Supabase Auth instead of
+        // trusting only the session cached in the browser.
+        const { data: userData, error: userError } = await client.auth.getUser();
+
+        if (userError) throw userError;
+
+        const user = userData.user;
+
+        if (!isAdminUser(user)) {
+          await client.auth.signOut();
+          renderAccessGate(
+            "Giriş qadağandır",
+            "Bu hesabın admin panelinə giriş icazəsi yoxdur."
+          );
+          return;
+        }
+
+        if (!["dma", "all"].includes(getStaffScope(user))) {
+          renderAccessGate("Giriş qadağandır", "Bu hesabın bu panelə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        document.getElementById("userEmail").textContent = user.email || "";
+
+        bootScreen.style.display = "none";
+        appShell.classList.add("ready");
+
+        await loadData();
+
+      } catch (error) {
+        console.error("Admin init error:", error);
+        bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
+      }
+    }
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      await client.auth.signOut();
+      window.location.href = "/admin/login/index.html";
+    });
+
+    searchInput.addEventListener("input", renderTable);
+    programFilter.addEventListener("change", renderTable);
+    eligibilityFilter.addEventListener("change", renderTable);
+
+    init();
+  </script>
+</body>
+</html>

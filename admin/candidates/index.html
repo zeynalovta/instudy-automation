@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <base href="/admin/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learnup Admin — Namizəd profili</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:#127663; --ink:#17232b; --muted:#6d7b83;
+      --line:#dfe7ea; --bg:#f4f7f9; --white:#fff;
+    }
+    body {
+      min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+    }
+    #bootScreen {
+      min-height:100vh; display:grid; place-items:center; color:var(--muted); padding:24px;
+    }
+    .shell { display:none; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+    .shell.ready { display:grid; }
+    aside { background:#102f35; color:#fff; padding:26px 18px; }
+    .brand { font-size:28px; font-weight:800; padding:0 10px 28px; }
+    .brand span { color:#53c7ad; }
+    nav a {
+      display:block; color:rgba(255,255,255,.75); text-decoration:none;
+      padding:12px 14px; border-radius:11px; margin-bottom:6px; font-weight:650; font-size:14px;
+    }
+    nav a.active { background:rgba(255,255,255,.10); color:#fff; }
+    main { min-width:0; }
+    .topbar {
+      min-height:76px; background:#fff; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; padding:14px 28px; gap:20px;
+    }
+    .topbar-left { display:flex; align-items:center; gap:14px; min-width:0; }
+    .back-link { color:var(--muted); text-decoration:none; font-weight:700; font-size:13px; white-space:nowrap; }
+    .topbar h1 { font-size:19px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .user-area { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .logout {
+      border:1px solid var(--line); background:#fff; padding:9px 12px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .content { padding:28px; display:grid; gap:20px; grid-template-columns: repeat(2, minmax(0,1fr)); align-items:start; }
+    .content.wide { grid-template-columns: 1fr; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+    .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); font-weight:800; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .panel-body { padding:20px; }
+    .full-width { grid-column: 1 / -1; }
+    dl.info-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:16px; }
+    dl.info-grid dt { font-size:12px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px; }
+    dl.info-grid dd { font-size:14px; font-weight:600; }
+    .badge {
+      display:inline-flex; padding:6px 9px; border-radius:999px;
+      font-size:11px; font-weight:800; white-space:nowrap;
+    }
+    .green { background:#e8f7f3; color:#176b58; }
+    .yellow { background:#fff7dd; color:#8a6812; }
+    .red { background:#fff0f0; color:#a33d3d; }
+    .gray { background:#f0f3f5; color:#607078; }
+    select, textarea, input {
+      width:100%; border:1px solid #d5dfe3; border-radius:11px; padding:11px 12px;
+      font:inherit; background:#fff;
+    }
+    textarea { min-height:110px; resize:vertical; }
+    button {
+      border:0; border-radius:11px; padding:11px 16px; background:var(--green); color:#fff;
+      font-weight:800; cursor:pointer;
+    }
+    button:disabled { opacity:.6; cursor:wait; }
+    select:disabled, input:disabled { opacity:.5; cursor:not-allowed; }
+    .field { margin-bottom:16px; }
+    .field:last-child { margin-bottom:0; }
+    .field label { display:block; font-size:13px; font-weight:700; margin-bottom:7px; }
+    .field-hint { color:var(--muted); font-size:12px; margin-top:6px; }
+    .message { margin:12px 20px 0; padding:11px 13px; border-radius:11px; font-size:13px; display:none; }
+    .message.error { display:block; color:#9f3131; background:#fff1f1; border:1px solid #ffd7d7; }
+    .message.success { display:block; color:#176b58; background:#eefaf6; border:1px solid #ccece3; }
+    .booking-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #edf1f3; font-size:13px; }
+    .booking-row:last-child { border-bottom:0; }
+    .loading,.empty,.error { padding:24px 20px; text-align:center; color:var(--muted); }
+    @media (max-width:900px) {
+      .shell.ready { grid-template-columns:1fr; }
+      aside { display:none; }
+      .content { grid-template-columns:1fr; padding:18px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bootScreen" style="
+    min-height:100vh; display:grid; place-items:center;
+    background:#f4f7f9; color:#6d7b83; padding:24px;
+  ">
+    <div>Admin panel yoxlanılır...</div>
+  </div>
+
+  <div id="appShell" class="shell">
+    <aside>
+      <div class="brand">Learn<span>up</span></div>
+      <nav>
+        <a class="active" href="../index.html">Namizədlər</a>
+        <a href="../exams/index.html">İmtahanlar</a>
+        <a href="../interviews/index.html">Müsahibələr</a>
+        <a href="../groups/index.html">DMA qrupları</a>
+        <a href="../attendance/index.html">Davamiyyət</a>
+        <a href="../graduates/index.html">Məzunlar</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div class="topbar-left">
+          <a class="back-link" href="../index.html">← Namizədlər</a>
+          <h1 id="pageTitle">Namizəd profili</h1>
+        </div>
+        <div class="user-area">
+          <span id="userEmail"></span>
+          <button id="logoutButton" class="logout">Çıxış</button>
+        </div>
+      </header>
+
+      <section id="content" class="content">
+        <div id="stateMessage" class="loading full-width">Yüklənir...</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const bootScreen = document.getElementById("bootScreen");
+    const appShell = document.getElementById("appShell");
+    const content = document.getElementById("content");
+    const stateMessage = document.getElementById("stateMessage");
+    const pageTitle = document.getElementById("pageTitle");
+
+    const eligibilityLabel = {
+      NEW:"Yeni", PRELIMINARILY_ELIGIBLE:"İlkin uyğun",
+      MANUAL_REVIEW_REQUIRED:"Manual yoxlama", NOT_ELIGIBLE:"Uyğun deyil"
+    };
+
+    // Same "Ümumi gedişat" model as admin/index.html — kept in sync so this
+    // page can't drift back into writing raw current_status values that the
+    // master table no longer understands.
+    const stageLabel = {
+      EXAM_FAILED: "İmtahandan kəsilib",
+      INTERVIEW_FAILED: "Müsahibədən kəsilib",
+      ENROLLED: "Təlimdədir",
+      DECLINED: "İmtina edildi",
+    };
+
+    function stageBucket(item) {
+      const status = item.current_status;
+      if (status === "ENROLLED" || status === "GRADUATED") return "ENROLLED";
+      if (status === "DECLINED" || status === "NOT_ELIGIBLE" || status === "EXPELLED") return "DECLINED";
+      if (status === "EXAM_FAILED") return "EXAM_FAILED";
+      if (status === "INTERVIEW_FAILED") return "INTERVIEW_FAILED";
+      if (item.dma_status === "REJECTED") return "DECLINED";
+      if (item.interview_result === "FAILED") return "INTERVIEW_FAILED";
+      if (item.exam_score !== null && item.exam_score < 30) return "EXAM_FAILED";
+      return "";
+    }
+
+    const dmaLabel = {
+      SUBMITTED: "Göndərildi",
+      APPROVED: "Təsdiqləndi",
+      REJECTED: "Rədd edildi",
+    };
+
+    const EXAM_CLEARED_STATUSES = [
+      "INTERVIEW_INVITED", "INTERVIEW_BOOKED", "INTERVIEW_PASSED", "INTERVIEW_FAILED",
+      "RESERVE_LIST", "SUBMITTED_TO_DMA", "DMA_APPROVED", "DMA_REJECTED", "ENROLLED", "GRADUATED",
+    ];
+
+    function canManageInterview(item) {
+      if (item.exam_scheduled_at || item.exam_score !== null) {
+        return !!item.exam_scheduled_at && item.exam_score !== null && item.exam_score >= 30;
+      }
+      return EXAM_CLEARED_STATUSES.includes(item.current_status);
+    }
+
+    function canManageDma(item) {
+      return item.interview_result === "PASSED";
+    }
+
+    function toDateTimeLocalValue(value) {
+      if (!value) return "";
+      const d = new Date(value);
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function isAdminUser(user) {
+      return user?.app_metadata?.role === "admin";
+    }
+
+    // Fail closed: only a claim that is exactly one of these known values
+    // is trusted. Missing/null/empty/mistyped staff_scope now resolves to
+    // "no_access" instead of silently becoming "all" — the previous
+    // fallback here gave a blank claim full super-admin access.
+    const VALID_STAFF_SCOPES = ["dma", "all"];
+    function getStaffScope(user) {
+      const scope = user?.app_metadata?.staff_scope;
+      return VALID_STAFF_SCOPES.includes(scope) ? scope : "no_access";
+    }
+
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function renderAccessGate(title, message) {
+      bootScreen.innerHTML = `
+        <div style="width:min(100%,460px);background:#fff;border:1px solid #dfe7ea;border-radius:20px;padding:30px;text-align:center;box-shadow:0 18px 45px rgba(20,46,55,.08);">
+          <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Learn<span style="color:#168a74;">up</span></div>
+          <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
+          <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">${escapeHtml(message)}</p>
+          <a href="../login/index.html" style="display:inline-block;background:#127663;color:#fff;text-decoration:none;padding:13px 18px;border-radius:12px;font-weight:800;">Giriş səhifəsinə keç</a>
+        </div>
+      `;
+    }
+
+    function badgeClass(value) {
+      if (value === "PRELIMINARILY_ELIGIBLE" || value === "ELIGIBLE" || value === "EXAM_PASSED" || value === "INTERVIEW_PASSED" || value === "DMA_APPROVED" || value === "ENROLLED" || value === "GRADUATED") return "green";
+      if (value === "MANUAL_REVIEW_REQUIRED" || value === "SUBMITTED_TO_DMA") return "yellow";
+      if (value === "NOT_ELIGIBLE" || value === "EXAM_FAILED" || value === "EXAM_NO_SHOW" || value === "INTERVIEW_NO_SHOW" || value === "INTERVIEW_FAILED" || value === "DMA_REJECTED" || value === "EXPELLED" || value === "DECLINED") return "red";
+      return "gray";
+    }
+
+    function yesNo(value) {
+      if (value === true) return "Bəli";
+      if (value === false) return "Xeyr";
+      return "—";
+    }
+
+    function formatDate(value, withTime) {
+      if (!value) return "—";
+      return new Intl.DateTimeFormat("az-AZ", {
+        day:"2-digit", month:"2-digit", year:"numeric",
+        ...(withTime ? { hour:"2-digit", minute:"2-digit" } : {})
+      }).format(new Date(value));
+    }
+
+    function calcAge(birthDate) {
+      if (!birthDate) return null;
+      const diff = Date.now() - new Date(birthDate).getTime();
+      return Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+    }
+
+    function getApplicationId() {
+      const params = new URLSearchParams(window.location.search);
+      const id = Number(params.get("id"));
+      return Number.isInteger(id) && id > 0 ? id : null;
+    }
+
+    // These all reload the whole profile after a successful save — this page
+    // shows a single record, so a refetch is cheap and guarantees every
+    // gated field (which depends on several columns at once) reflects the
+    // true DB state instead of hand-patched local state.
+    async function updateFields(applicationId, fields, controlEl, messageEl, successText) {
+      const previousValue = controlEl.dataset.previousValue;
+      controlEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update(fields)
+        .eq("id", applicationId);
+
+      if (error) {
+        controlEl.disabled = false;
+        console.error("Update error:", error);
+        messageEl.className = "message error";
+        messageEl.textContent = "Yenilənmədi: " + error.message;
+        controlEl.value = previousValue;
+        return;
+      }
+
+      messageEl.className = "message success";
+      messageEl.textContent = successText || "Saxlanıldı.";
+      await loadProfile(applicationId);
+    }
+
+    function updateField(applicationId, field, value, controlEl, messageEl, successText) {
+      return updateFields(applicationId, { [field]: value }, controlEl, messageEl, successText);
+    }
+
+    async function saveNote(applicationId, note, buttonEl, messageEl) {
+      buttonEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ general_note: note })
+        .eq("id", applicationId);
+
+      buttonEl.disabled = false;
+
+      if (error) {
+        console.error("Note update error:", error);
+        messageEl.className = "message error";
+        messageEl.textContent = "Qeyd saxlanmadı: " + error.message;
+        return;
+      }
+
+      messageEl.className = "message success";
+      messageEl.textContent = "Qeyd saxlanıldı.";
+    }
+
+    async function saveInterviewNote(applicationId, note, buttonEl, messageEl) {
+      buttonEl.disabled = true;
+
+      const { error } = await client
+        .from("dma_applications")
+        .update({ interview_note: note })
+        .eq("id", applicationId);
+
+      buttonEl.disabled = false;
+
+      if (error) {
+        console.error("Interview note update error:", error);
+        messageEl.className = "message error";
+        messageEl.textContent = "Müsahibə qeydi saxlanmadı: " + error.message;
+        return;
+      }
+
+      messageEl.className = "message success";
+      messageEl.textContent = "Müsahibə qeydi saxlanıldı.";
+    }
+
+    async function copyInterviewLink(applicationId, buttonEl, messageEl) {
+      const link = `${window.location.origin}/dma/interview/index.html?a=${applicationId}`;
+
+      try {
+        await navigator.clipboard.writeText(link);
+        messageEl.className = "message success";
+        messageEl.textContent = "Müsahibə linki kopyalandı: " + link;
+      } catch (error) {
+        console.error("Clipboard error:", error);
+        messageEl.className = "message error";
+        messageEl.textContent = "Link kopyalanmadı. Əl ilə kopyalayın: " + link;
+      }
+    }
+
+    function renderProfile(app) {
+      const c = app.candidates || {};
+      const p = app.programs || {};
+      const age = calcAge(c.birth_date);
+
+      const examCleared = canManageInterview(app);
+      const interviewScheduled = !!app.interview_scheduled_at;
+      const attendanceKnown = app.interview_attended !== null;
+      const resultKnown = app.interview_result !== null;
+      const dmaCleared = canManageDma(app);
+
+      const scoreLocked = !app.exam_scheduled_at;
+      const interviewDateLocked = !examCleared;
+      const attendanceLocked = !examCleared || !interviewScheduled;
+      const resultLocked = !examCleared || !interviewScheduled || !attendanceKnown;
+      const dmaLocked = !dmaCleared;
+
+      const scoreLockTitle = "Əvvəlcə imtahan tarixi təyin edilməlidir";
+      const interviewLockTitle = examCleared
+        ? "Əvvəlcə müsahibə tarixi təyin edilməlidir"
+        : "Əvvəlcə imtahandan keçməlidir (bal 30+) — və ya müsahibəyə birbaşa dəvət olunmuş olmalıdır";
+      const resultLockTitle = attendanceLocked ? interviewLockTitle : "Əvvəlcə \"Gəldi?\" sualı cavablandırılmalıdır";
+      const dmaLockTitle = "Əvvəlcə müsahibə nəticəsi \"Keçdi\" olmalıdır";
+
+      pageTitle.textContent = c.full_name || "Namizəd profili";
+
+      content.innerHTML = `
+        <section class="panel full-width">
+          <div class="panel-head">
+            <span>${escapeHtml(c.full_name || "—")}</span>
+            <span>
+              <span class="badge ${badgeClass(app.eligibility_status)}">${escapeHtml(eligibilityLabel[app.eligibility_status] || app.eligibility_status)}</span>
+              <span class="badge ${badgeClass(app.current_status)}">${escapeHtml(stageLabel[stageBucket(app)] || "Prosesdədir")}</span>
+            </span>
+          </div>
+          <div class="panel-body">
+            <dl class="info-grid">
+              <div><dt>FİN</dt><dd>${escapeHtml(c.fin || "—")}</dd></div>
+              <div><dt>Doğum tarixi</dt><dd>${formatDate(c.birth_date)}${age !== null ? ` (${age} yaş)` : ""}</dd></div>
+              <div><dt>Email</dt><dd>${escapeHtml(c.email || "—")}</dd></div>
+              <div><dt>WhatsApp</dt><dd>${escapeHtml(c.whatsapp_phone || "—")}</dd></div>
+              <div><dt>Proqram</dt><dd>${escapeHtml(p.name || "—")}</dd></div>
+              <div><dt>Təhsil</dt><dd>${escapeHtml(c.education || "—")}</dd></div>
+              <div><dt>Tələbədir</dt><dd>${yesNo(c.is_student)}</dd></div>
+              <div><dt>İşləyir</dt><dd>${yesNo(c.is_employed)}</dd></div>
+              <div><dt>Aktiv VÖEN</dt><dd>${yesNo(c.has_active_voen)}</dd></div>
+              <div><dt>Son 1 il DMA kursu</dt><dd>${yesNo(c.attended_dma_course_last_12_months)}</dd></div>
+              <div><dt>Ünvan</dt><dd>${escapeHtml(c.address || "—")}</dd></div>
+              <div><dt>Müraciət tarixi</dt><dd>${formatDate(app.created_at, true)}</dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">Uyğunluq</div>
+          <div class="panel-body">
+            <dl class="info-grid">
+              <div><dt>Uyğunluq statusu</dt><dd>${escapeHtml(eligibilityLabel[app.eligibility_status] || app.eligibility_status)}</dd></div>
+              <div><dt>Səbəb</dt><dd>${escapeHtml(app.eligibility_reason || "—")}</dd></div>
+              <div><dt>İşsizlik statusu</dt><dd>${escapeHtml(app.unemployment_status || "—")}</dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">İmtahan</div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="examDateInput">İmtahan tarixi</label>
+              <input type="datetime-local" id="examDateInput" value="${toDateTimeLocalValue(app.exam_scheduled_at)}" data-previous-value="${app.exam_scheduled_at || ""}">
+            </div>
+            <div class="field">
+              <label for="examScoreInput">Bal</label>
+              <input type="number" id="examScoreInput" value="${app.exam_score ?? ""}" data-previous-value="${app.exam_score ?? ""}" placeholder="—"
+                ${scoreLocked ? `disabled title="${escapeHtml(scoreLockTitle)}"` : ""}>
+              ${scoreLocked ? `<p class="field-hint">${escapeHtml(scoreLockTitle)}</p>` : ""}
+            </div>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Müsahibə</div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="interviewDateInput">Müsahibə tarixi</label>
+              <input type="datetime-local" id="interviewDateInput" value="${toDateTimeLocalValue(app.interview_scheduled_at)}" data-previous-value="${app.interview_scheduled_at || ""}"
+                ${interviewDateLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
+              ${interviewDateLocked ? `<p class="field-hint">${escapeHtml(interviewLockTitle)}</p>` : ""}
+            </div>
+            <div class="field">
+              <label for="attendanceSelect">Gəldi?</label>
+              <select id="attendanceSelect" data-previous-value="${app.interview_attended ?? ""}"
+                ${attendanceLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
+                <option value="" disabled ${!attendanceKnown ? "selected" : ""}>—</option>
+                <option value="YES" ${app.interview_attended === "YES" ? "selected" : ""}>Bəli</option>
+                <option value="NO" ${app.interview_attended === "NO" ? "selected" : ""}>Xeyr</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="resultSelect">Müsahibə nəticəsi</label>
+              <select id="resultSelect" data-previous-value="${app.interview_result ?? ""}"
+                ${resultLocked ? `disabled title="${escapeHtml(resultLockTitle)}"` : ""}>
+                <option value="" disabled ${!resultKnown ? "selected" : ""}>—</option>
+                <option value="PASSED" ${app.interview_result === "PASSED" ? "selected" : ""}>Keçdi</option>
+                <option value="FAILED" ${app.interview_result === "FAILED" ? "selected" : ""}>Keçmədi</option>
+                <option value="RESERVE" ${app.interview_result === "RESERVE" ? "selected" : ""}>Ehtiyat</option>
+              </select>
+              ${resultLocked ? `<p class="field-hint">${escapeHtml(resultLockTitle)}</p>` : ""}
+            </div>
+
+            ${app.current_status === "INTERVIEW_INVITED" ? `
+              <div class="field">
+                <button id="copyInterviewLinkButton" type="button">Müsahibə linkini kopyala</button>
+              </div>
+            ` : ""}
+
+            <div class="field">
+              <label for="interviewNoteInput">Müsahibə qeydi</label>
+              <textarea id="interviewNoteInput" placeholder="Müsahibə ilə bağlı qeyd əlavə et...">${escapeHtml(app.interview_note || "")}</textarea>
+              <div style="margin-top:12px;">
+                <button id="saveInterviewNoteButton">Qeydi saxla</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">DMA</div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="dmaSelect">DMA statusu</label>
+              <select id="dmaSelect" data-previous-value="${app.dma_status ?? ""}"
+                ${dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>
+                <option value="" disabled ${!app.dma_status ? "selected" : ""}>—</option>
+                ${Object.entries(dmaLabel).map(([value, label]) => `
+                  <option value="${value}" ${app.dma_status === value ? "selected" : ""}>${escapeHtml(label)}</option>
+                `).join("")}
+              </select>
+              ${dmaLocked ? `<p class="field-hint">${escapeHtml(dmaLockTitle)}</p>` : ""}
+            </div>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Ümumi gedişat</div>
+          <div class="panel-body">
+            <select id="statusSelect" data-previous-value="${app.current_status}">
+              <option value="" disabled ${!stageBucket(app) ? "selected" : ""}>Prosesdədir</option>
+              ${Object.entries(stageLabel).map(([value, label]) => `
+                <option value="${value}" ${stageBucket(app) === value ? "selected" : ""}
+                  ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
+              `).join("")}
+            </select>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Daxili qeyd (staff)</div>
+          <div class="panel-body">
+            <textarea id="noteInput" placeholder="Bu namizəd haqqında qeyd əlavə et...">${escapeHtml(app.general_note || "")}</textarea>
+            <div style="margin-top:12px;">
+              <button id="saveNoteButton">Qeydi saxla</button>
+            </div>
+          </div>
+          <div id="actionMessage" class="message"></div>
+        </section>
+      `;
+
+      const messageEl = document.getElementById("actionMessage");
+
+      document.getElementById("statusSelect").addEventListener("change", event => {
+        updateField(app.id, "current_status", event.target.value, event.target, messageEl, "Status yeniləndi.");
+      });
+
+      document.getElementById("examDateInput").addEventListener("change", event => {
+        const value = event.target.value ? new Date(event.target.value).toISOString() : null;
+        updateField(app.id, "exam_scheduled_at", value, event.target, messageEl, "İmtahan tarixi saxlanıldı.");
+      });
+
+      document.getElementById("examScoreInput").addEventListener("change", event => {
+        const value = event.target.value === "" ? null : Number(event.target.value);
+        updateField(app.id, "exam_score", value, event.target, messageEl, "Bal saxlanıldı.");
+      });
+
+      document.getElementById("interviewDateInput").addEventListener("change", event => {
+        const value = event.target.value ? new Date(event.target.value).toISOString() : null;
+        updateField(app.id, "interview_scheduled_at", value, event.target, messageEl, "Müsahibə tarixi saxlanıldı.");
+      });
+
+      document.getElementById("attendanceSelect").addEventListener("change", event => {
+        const value = event.target.value || null;
+        const fields = { interview_attended: value };
+        if (value === "NO") fields.interview_result = "FAILED";
+        updateFields(
+          app.id, fields, event.target, messageEl,
+          value === "NO"
+            ? "\"Gəldi?\" saxlanıldı: Xeyr. Müsahibə nəticəsi avtomatik \"Keçmədi\" oldu."
+            : "\"Gəldi?\" saxlanıldı: Bəli"
+        );
+      });
+
+      document.getElementById("resultSelect").addEventListener("change", event => {
+        updateField(app.id, "interview_result", event.target.value || null, event.target, messageEl, "Müsahibə nəticəsi saxlanıldı.");
+      });
+
+      document.getElementById("dmaSelect").addEventListener("change", event => {
+        updateField(app.id, "dma_status", event.target.value || null, event.target, messageEl, "DMA statusu saxlanıldı.");
+      });
+
+      document.getElementById("saveNoteButton").addEventListener("click", () => {
+        const note = document.getElementById("noteInput").value.trim();
+        saveNote(app.id, note, document.getElementById("saveNoteButton"), messageEl);
+      });
+
+      document.getElementById("saveInterviewNoteButton").addEventListener("click", () => {
+        const note = document.getElementById("interviewNoteInput").value.trim();
+        saveInterviewNote(app.id, note, document.getElementById("saveInterviewNoteButton"), messageEl);
+      });
+
+      const copyInterviewLinkButton = document.getElementById("copyInterviewLinkButton");
+      if (copyInterviewLinkButton) {
+        copyInterviewLinkButton.addEventListener("click", () => {
+          copyInterviewLink(app.id, copyInterviewLinkButton, messageEl);
+        });
+      }
+    }
+
+    async function loadProfile(applicationId) {
+      const { data, error } = await client
+        .from("dma_applications")
+        .select(`
+          id, eligibility_status, eligibility_reason, unemployment_status,
+          current_status, general_note, exam_score, interview_note, created_at,
+          exam_scheduled_at, interview_scheduled_at,
+          interview_attended, interview_result, dma_status,
+          dma_candidates!dma_applications_candidate_id_fkey (
+            id, full_name, fin, birth_date, email, whatsapp_phone, education,
+            is_student, is_employed, has_active_voen, address,
+            attended_dma_course_last_12_months
+          ),
+          dma_programs!dma_applications_program_id_fkey ( id, name, slug )
+        `)
+        .eq("id", applicationId)
+        .single();
+
+      if (error || !data) {
+        console.error("Profile load error:", error);
+        stateMessage.className = "error full-width";
+        stateMessage.textContent = "Namizəd tapılmadı.";
+        return;
+      }
+
+      renderProfile(data);
+    }
+
+    async function init() {
+      try {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!sessionData.session) {
+          renderAccessGate("Admin girişi tələb olunur", "Bu səhifəni görmək üçün əvvəlcə sistemə daxil olun.");
+          return;
+        }
+
+        const { data: userData, error: userError } = await client.auth.getUser();
+        if (userError) throw userError;
+
+        const user = userData.user;
+
+        if (!isAdminUser(user)) {
+          await client.auth.signOut();
+          renderAccessGate("Giriş qadağandır", "Bu hesabın admin panelinə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        if (!["dma", "all"].includes(getStaffScope(user))) {
+          renderAccessGate("Giriş qadağandır", "Bu hesabın bu panelə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        document.getElementById("userEmail").textContent = user.email || "";
+        bootScreen.style.display = "none";
+        appShell.classList.add("ready");
+
+        const applicationId = getApplicationId();
+        if (!applicationId) {
+          stateMessage.className = "error full-width";
+          stateMessage.textContent = "Namizəd ID-si tapılmadı.";
+          return;
+        }
+
+        await loadProfile(applicationId);
+
+      } catch (error) {
+        console.error("Admin candidate profile init error:", error);
+        bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
+      }
+    }
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      await client.auth.signOut();
+      window.location.href = "/admin/login/index.html";
+    });
+
+    init();
+  </script>
+</body>
+</html>

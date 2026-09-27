@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <base href="/admin/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learnup Admin — İmtahanlar</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:#127663; --ink:#17232b; --muted:#6d7b83;
+      --line:#dfe7ea; --bg:#f4f7f9; --white:#fff;
+    }
+    body {
+      min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+    }
+    #bootScreen {
+      min-height:100vh; display:grid; place-items:center; color:var(--muted); padding:24px;
+    }
+    .shell { display:none; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+    .shell.ready { display:grid; }
+    aside { background:#102f35; color:#fff; padding:26px 18px; }
+    .brand { font-size:28px; font-weight:800; padding:0 10px 28px; }
+    .brand span { color:#53c7ad; }
+    nav a {
+      display:block; color:rgba(255,255,255,.75); text-decoration:none;
+      padding:12px 14px; border-radius:11px; margin-bottom:6px; font-weight:650; font-size:14px;
+    }
+    nav a.active { background:rgba(255,255,255,.10); color:#fff; }
+    main { min-width:0; }
+    .topbar {
+      min-height:76px; background:#fff; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; padding:14px 28px; gap:20px;
+    }
+    .topbar h1 { font-size:21px; }
+    .user-area { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .logout {
+      border:1px solid var(--line); background:#fff; padding:9px 12px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .content { padding:28px; display:grid; gap:20px; grid-template-columns: 340px minmax(0,1fr); align-items:start; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+    .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); font-weight:800; }
+    .panel-body { padding:20px; }
+    .field { margin-bottom:16px; }
+    label { display:block; font-size:13px; font-weight:700; margin-bottom:7px; }
+    input, select {
+      width:100%; border:1px solid #d5dfe3; border-radius:11px; padding:11px 12px;
+      font:inherit; background:#fff;
+    }
+    button {
+      border:0; border-radius:11px; padding:13px; background:var(--green); color:#fff;
+      font-weight:800; cursor:pointer; width:100%;
+    }
+    button:disabled { opacity:.6; cursor:wait; }
+    .message { margin-bottom:14px; padding:11px 13px; border-radius:11px; font-size:13px; display:none; }
+    .message.error { display:block; color:#9f3131; background:#fff1f1; border:1px solid #ffd7d7; }
+    .message.success { display:block; color:#176b58; background:#eefaf6; border:1px solid #ccece3; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:14px 16px; border-bottom:1px solid #edf1f3; font-size:13px; }
+    th { color:#6d7b83; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#fbfcfd; }
+    .seats { font-weight:800; }
+    .seats.full { color:#a33d3d; }
+    .loading,.empty,.error { padding:36px 20px; text-align:center; color:var(--muted); }
+    .full-width { grid-column: 1 / -1; }
+    .score-input { width:80px; }
+    .status-select { border:1px solid #d5dfe3; border-radius:9px; padding:7px 9px; font-size:12px; font-weight:700; }
+    .status-select:disabled, .score-input:disabled { opacity:.6; cursor:wait; }
+    .delete-btn {
+      width:auto; background:#fff; color:#a33d3d; border:1px solid #ffd7d7;
+      border-radius:9px; padding:7px 12px; font-size:12px; font-weight:700;
+    }
+    .delete-btn:disabled { opacity:.6; cursor:wait; }
+    @media (max-width:900px) {
+      .shell.ready { grid-template-columns:1fr; }
+      aside { display:none; }
+      .content { grid-template-columns:1fr; padding:18px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bootScreen" style="
+    min-height:100vh; display:grid; place-items:center;
+    background:#f4f7f9; color:#6d7b83; padding:24px;
+  ">
+    <div>Admin panel yoxlanılır...</div>
+  </div>
+
+  <div id="appShell" class="shell">
+    <aside>
+      <div class="brand">Learn<span>up</span></div>
+      <nav>
+        <a href="../index.html">Namizədlər</a>
+        <a class="active" href="./index.html">İmtahanlar</a>
+        <a href="../interviews/index.html">Müsahibələr</a>
+        <a href="../groups/index.html">DMA qrupları</a>
+        <a href="../attendance/index.html">Davamiyyət</a>
+        <a href="../graduates/index.html">Məzunlar</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <h1>İmtahanlar</h1>
+        <div class="user-area">
+          <span id="userEmail"></span>
+          <button id="logoutButton" class="logout">Çıxış</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="panel">
+          <div class="panel-head">Yeni sessiya</div>
+          <div class="panel-body">
+            <div id="formMessage" class="message"></div>
+            <form id="sessionForm">
+              <div class="field">
+                <label for="programSelect">Proqram</label>
+                <select id="programSelect" required>
+                  <option value="">Seç...</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="dateInput">Tarix</label>
+                <input id="dateInput" type="date" required>
+              </div>
+              <div class="field">
+                <label for="timeInput">Vaxt</label>
+                <input id="timeInput" type="time" required>
+              </div>
+              <div class="field">
+                <label for="capacityInput">Tutum (yer sayı)</label>
+                <input id="capacityInput" type="number" min="1" value="20" required>
+              </div>
+              <button id="submitButton" type="submit">Sessiya yarat</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">Mövcud sessiyalar</div>
+          <div id="sessionsMessage" class="message" style="margin:14px 20px 0;"></div>
+          <div class="table-wrap">
+            <div id="stateMessage" class="loading">Yüklənir...</div>
+            <table id="sessionsTable" hidden>
+              <thead>
+                <tr>
+                  <th>Proqram</th>
+                  <th>Tarix / vaxt</th>
+                  <th>Yerlər</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="sessionsBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Rezervasiyalar — iştirak və bal</div>
+          <div id="bookingsMessage" class="message" style="margin:14px 20px 0;"></div>
+          <div class="table-wrap">
+            <div id="bookingsState" class="loading">Yüklənir...</div>
+            <table id="bookingsTable" hidden>
+              <thead>
+                <tr>
+                  <th>Namizəd</th>
+                  <th>FİN</th>
+                  <th>Proqram</th>
+                  <th>Sessiya</th>
+                  <th>Bal</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="bookingsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const bootScreen = document.getElementById("bootScreen");
+    const appShell = document.getElementById("appShell");
+    const stateMessage = document.getElementById("stateMessage");
+    const table = document.getElementById("sessionsTable");
+    const tbody = document.getElementById("sessionsBody");
+    const programSelect = document.getElementById("programSelect");
+    const form = document.getElementById("sessionForm");
+    const submitButton = document.getElementById("submitButton");
+    const formMessage = document.getElementById("formMessage");
+
+    const bookingsState = document.getElementById("bookingsState");
+    const bookingsTable = document.getElementById("bookingsTable");
+    const bookingsBody = document.getElementById("bookingsBody");
+
+    const examStatusLabel = {
+      EXAM_BOOKED: "İmtahan rezervasiyası",
+      EXAM_ATTENDED: "İmtahanda iştirak etdi",
+      EXAM_NO_SHOW: "İmtahana gəlmədi",
+      EXAM_FAILED: "İmtahandan keçmədi",
+      EXAM_PASSED: "İmtahandan keçdi",
+    };
+
+    function isAdminUser(user) {
+      return user?.app_metadata?.role === "admin";
+    }
+
+    // Fail closed: only a claim that is exactly one of these known values
+    // is trusted. Missing/null/empty/mistyped staff_scope now resolves to
+    // "no_access" instead of silently becoming "all" — the previous
+    // fallback here gave a blank claim full super-admin access.
+    const VALID_STAFF_SCOPES = ["dma", "all"];
+    function getStaffScope(user) {
+      const scope = user?.app_metadata?.staff_scope;
+      return VALID_STAFF_SCOPES.includes(scope) ? scope : "no_access";
+    }
+
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function renderAccessGate(title, message) {
+      bootScreen.innerHTML = `
+        <div style="width:min(100%,460px);background:#fff;border:1px solid #dfe7ea;border-radius:20px;padding:30px;text-align:center;box-shadow:0 18px 45px rgba(20,46,55,.08);">
+          <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Learn<span style="color:#168a74;">up</span></div>
+          <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
+          <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">${escapeHtml(message)}</p>
+          <a href="../login/index.html" style="display:inline-block;background:#127663;color:#fff;text-decoration:none;padding:13px 18px;border-radius:12px;font-weight:800;">Giriş səhifəsinə keç</a>
+        </div>
+      `;
+    }
+
+    function formatDateTime(value) {
+      return new Intl.DateTimeFormat("az-AZ", {
+        day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"
+      }).format(new Date(value));
+    }
+
+    async function loadPrograms() {
+      const { data, error } = await client.from("dma_programs").select("id, name").order("name");
+      if (error) {
+        console.error("Programs load error:", error);
+        return;
+      }
+      for (const program of data || []) {
+        const option = document.createElement("option");
+        option.value = String(program.id);
+        option.textContent = program.name;
+        programSelect.appendChild(option);
+      }
+    }
+
+    async function loadSessions() {
+      const { data: sessions, error } = await client
+        .from("dma_exam_sessions")
+        .select("id, starts_at, capacity, dma_programs!dma_exam_sessions_program_id_fkey (id, name)")
+        .order("starts_at", { ascending: true });
+
+      if (error) {
+        console.error("Sessions load error:", error);
+        stateMessage.className = "error";
+        stateMessage.textContent = "Sessiyalar yüklənmədi: " + error.message;
+        return;
+      }
+
+      const { data: bookings, error: bookingsError } = await client
+        .from("dma_exam_bookings")
+        .select("exam_session_id")
+        .eq("status", "BOOKED");
+
+      if (bookingsError) {
+        console.error("Bookings load error:", bookingsError);
+      }
+
+      const bookedCounts = new Map();
+      for (const booking of bookings || []) {
+        bookedCounts.set(
+          booking.exam_session_id,
+          (bookedCounts.get(booking.exam_session_id) || 0) + 1
+        );
+      }
+
+      tbody.innerHTML = (sessions || []).map(session => {
+        const booked = bookedCounts.get(session.id) || 0;
+        const available = session.capacity - booked;
+        return `
+          <tr>
+            <td>${escapeHtml(session.programs?.name || "—")}</td>
+            <td>${formatDateTime(session.starts_at)}</td>
+            <td class="seats ${available <= 0 ? "full" : ""}">${booked}/${session.capacity}${available <= 0 ? " (dolu)" : ""}</td>
+            <td><button type="button" class="delete-btn" data-session-id="${session.id}">Sil</button></td>
+          </tr>
+        `;
+      }).join("");
+
+      stateMessage.hidden = true;
+      table.hidden = false;
+
+      if (!(sessions || []).length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty">Hələ heç bir sessiya yaradılmayıb.</td></tr>`;
+      }
+    }
+
+    const sessionsMessage = document.getElementById("sessionsMessage");
+
+    function showSessionsMessage(type, text) {
+      sessionsMessage.className = "message " + type;
+      sessionsMessage.textContent = text;
+    }
+
+    tbody.addEventListener("click", async event => {
+      const button = event.target.closest(".delete-btn");
+      if (!button) return;
+
+      if (!window.confirm("Bu sessiyanı silmək istədiyinizə əminsiniz?")) return;
+
+      const sessionId = Number(button.dataset.sessionId);
+      button.disabled = true;
+
+      const { error } = await client.from("dma_exam_sessions").delete().eq("id", sessionId);
+
+      if (error) {
+        button.disabled = false;
+        console.error("Session delete error:", error);
+        const isFkViolation = error.code === "23503" || /foreign key/i.test(error.message || "");
+        showSessionsMessage(
+          "error",
+          isFkViolation
+            ? "Bu sessiya silinə bilmədi, çünki onunla bağlı rezervasiya var. Əvvəlcə həmin rezervasiyanı ləğv edin."
+            : "Sessiya silinmədi: " + error.message
+        );
+        return;
+      }
+
+      showSessionsMessage("success", "Sessiya silindi.");
+      await loadSessions();
+    });
+
+    async function loadBookings() {
+      const { data: bookings, error } = await client
+        .from("dma_exam_bookings")
+        .select(`
+          id,
+          exam_sessions!exam_bookings_exam_session_id_fkey ( starts_at ),
+          dma_applications!dma_exam_bookings_application_id_fkey (
+            id,
+            current_status,
+            exam_score,
+            dma_candidates!dma_applications_candidate_id_fkey ( full_name, fin ),
+            dma_programs!dma_applications_program_id_fkey ( name )
+          )
+        `)
+        .eq("status", "BOOKED")
+        .order("id", { ascending: false });
+
+      if (error) {
+        console.error("Bookings load error:", error);
+        bookingsState.className = "error";
+        bookingsState.textContent = "Rezervasiyalar yüklənmədi: " + error.message;
+        return;
+      }
+
+      bookingsBody.innerHTML = (bookings || []).map(booking => {
+        const app = booking.applications || {};
+        const c = app.candidates || {};
+        const p = app.programs || {};
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(c.full_name || "—")}</strong></td>
+            <td>${escapeHtml(c.fin || "—")}</td>
+            <td>${escapeHtml(p.name || "—")}</td>
+            <td>${booking.exam_sessions?.starts_at ? formatDateTime(booking.exam_sessions.starts_at) : "—"}</td>
+            <td>
+              <input
+                type="number" class="score-input" data-app-id="${app.id}"
+                value="${app.exam_score ?? ""}" data-previous-value="${app.exam_score ?? ""}"
+                placeholder="—"
+              >
+            </td>
+            <td>
+              <select class="status-select" data-app-id="${app.id}" data-previous-value="${app.current_status}">
+                ${Object.entries(examStatusLabel).map(([value, label]) => `
+                  <option value="${value}" ${value === app.current_status ? "selected" : ""}>${escapeHtml(label)}</option>
+                `).join("")}
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      bookingsState.hidden = true;
+      bookingsTable.hidden = false;
+
+      if (!(bookings || []).length) {
+        bookingsBody.innerHTML = `<tr><td colspan="6" class="empty">Hələ heç bir rezervasiya yoxdur.</td></tr>`;
+      }
+    }
+
+    const bookingsMessage = document.getElementById("bookingsMessage");
+
+    function showBookingsMessage(type, text) {
+      bookingsMessage.className = "message " + type;
+      bookingsMessage.textContent = text;
+    }
+
+    bookingsBody.addEventListener("change", async event => {
+      const statusEl = event.target.closest(".status-select");
+      const scoreEl = event.target.closest(".score-input");
+
+      if (statusEl) {
+        const applicationId = Number(statusEl.dataset.appId);
+        const previousValue = statusEl.dataset.previousValue;
+        statusEl.disabled = true;
+
+        const { error } = await client
+          .from("dma_applications")
+          .update({ current_status: statusEl.value })
+          .eq("id", applicationId);
+
+        statusEl.disabled = false;
+
+        if (error) {
+          console.error("Status update error:", error);
+          showBookingsMessage("error", "Status yenilənmədi: " + error.message);
+          statusEl.value = previousValue;
+          return;
+        }
+
+        statusEl.dataset.previousValue = statusEl.value;
+        showBookingsMessage("success", "Status yeniləndi: " + (examStatusLabel[statusEl.value] || statusEl.value));
+        return;
+      }
+
+      if (scoreEl) {
+        const applicationId = Number(scoreEl.dataset.appId);
+        const previousValue = scoreEl.dataset.previousValue;
+        const newValue = scoreEl.value === "" ? null : Number(scoreEl.value);
+        scoreEl.disabled = true;
+
+        const { error } = await client
+          .from("dma_applications")
+          .update({ exam_score: newValue })
+          .eq("id", applicationId);
+
+        if (error) {
+          scoreEl.disabled = false;
+          console.error("Score update error:", error);
+          showBookingsMessage("error", "Bal yenilənmədi: " + error.message);
+          scoreEl.value = previousValue;
+          return;
+        }
+
+        // Score changes can auto-route current_status (see the DB trigger) —
+        // reload so the status column always shows what's actually stored,
+        // instead of leaving a stale value on screen after a silent save.
+        const autoRouted = newValue !== null;
+        await loadBookings();
+
+        showBookingsMessage(
+          "success",
+          autoRouted
+            ? `Bal saxlanıldı (${newValue}). Status avtomatik yeniləndi.`
+            : "Bal saxlanıldı."
+        );
+      }
+    });
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      submitButton.disabled = true;
+      formMessage.className = "message";
+      formMessage.textContent = "";
+
+      const programId = Number(programSelect.value);
+      const date = document.getElementById("dateInput").value;
+      const time = document.getElementById("timeInput").value;
+      const capacity = Number(document.getElementById("capacityInput").value);
+      const startsAt = new Date(`${date}T${time}`).toISOString();
+
+      const { error } = await client.from("dma_exam_sessions").insert({
+        program_id: programId,
+        starts_at: startsAt,
+        capacity,
+      });
+
+      submitButton.disabled = false;
+
+      if (error) {
+        console.error("Session create error:", error);
+        formMessage.className = "message error";
+        formMessage.textContent = "Sessiya yaradıla bilmədi: " + error.message;
+        return;
+      }
+
+      formMessage.className = "message success";
+      formMessage.textContent = "Sessiya yaradıldı.";
+      form.reset();
+      document.getElementById("capacityInput").value = 20;
+      await loadSessions();
+    });
+
+    async function init() {
+      try {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!sessionData.session) {
+          renderAccessGate("Admin girişi tələb olunur", "Bu səhifəni görmək üçün əvvəlcə sistemə daxil olun.");
+          return;
+        }
+
+        const { data: userData, error: userError } = await client.auth.getUser();
+        if (userError) throw userError;
+
+        const user = userData.user;
+
+        if (!isAdminUser(user)) {
+          await client.auth.signOut();
+          renderAccessGate("Giriş qadağandır", "Bu hesabın admin panelinə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        if (!["dma", "all"].includes(getStaffScope(user))) {
+          renderAccessGate("Giriş qadağandır", "Bu hesabın bu panelə giriş icazəsi yoxdur.");
+          return;
+        }
+
+        document.getElementById("userEmail").textContent = user.email || "";
+        bootScreen.style.display = "none";
+        appShell.classList.add("ready");
+
+        await Promise.all([loadPrograms(), loadSessions(), loadBookings()]);
+
+      } catch (error) {
+        console.error("Admin exams init error:", error);
+        bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
+      }
+    }
+
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      await client.auth.signOut();
+      window.location.href = "/admin/login/index.html";
+    });
+
+    init();
+  </script>
+</body>
+</html>
