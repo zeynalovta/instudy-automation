@@ -86,12 +86,12 @@
     <aside>
       <div class="brand">Learn<span>up</span></div>
       <nav>
-        <a href="../index.html">Namizədlər</a>
-        <a href="../exams/index.html">İmtahanlar</a>
-        <a href="../interviews/index.html">Müsahibələr</a>
-        <a href="../groups/index.html">DMA qrupları</a>
-        <a href="../attendance/index.html">Davamiyyət</a>
-        <a class="active" href="./index.html">Məzunlar</a>
+        <a href="/admin/index.html">Namizədlər</a>
+        <a href="/admin/exams/index.html">İmtahanlar</a>
+        <a href="/admin/interviews/index.html">Müsahibələr</a>
+        <a href="/admin/groups/index.html">DMA qrupları</a>
+        <a href="/admin/attendance/index.html">Davamiyyət</a>
+        <a class="active" href="/admin/graduates/index.html">Məzunlar</a>
       </nav>
     </aside>
 
@@ -218,7 +218,7 @@
 
         return `
           <tr>
-            <td><a href="../candidates/index.html?id=${item.id}" style="color:var(--ink);font-weight:800;text-decoration:none;">${escapeHtml(c.full_name || "—")}</a></td>
+            <td><a href="/admin/candidates/index.html?id=${item.id}" style="color:var(--ink);font-weight:800;text-decoration:none;">${escapeHtml(c.full_name || "—")}</a></td>
             <td>${escapeHtml(p.name || "—")}</td>
             <td>${escapeHtml(g.name || "—")}</td>
             <td>${formatDate(g.ends_at)}</td>
