@@ -431,6 +431,17 @@
       }).format(new Date(value));
     }
 
+    // Intl.DateTimeFormat("az-AZ", { month:"long", weekday:"long" }) bir çox
+    // brauzer/ICU-da düzgün işləmir ("2026 M09 27, Sun" kimi fallback verir).
+    // Ona görə tam tarixi (baş səhifədəki başlıq üçün) əllə formatlayırıq.
+    const AZ_MONTHS = ["yanvar","fevral","mart","aprel","may","iyun","iyul","avqust","sentyabr","oktyabr","noyabr","dekabr"];
+    const AZ_WEEKDAYS = ["bazar","bazar ertəsi","çərşənbə axşamı","çərşənbə","cümə axşamı","cümə","şənbə"];
+    function formatDateAz(value) {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return "—";
+      return `${d.getDate()} ${AZ_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${AZ_WEEKDAYS[d.getDay()]}`;
+    }
+
     function toDateTimeLocalValue(value) {
       if (!value) return "";
       const d = new Date(value);
@@ -450,9 +461,7 @@
     };
 
     function renderDashboard() {
-      document.getElementById("dashDate").textContent = new Intl.DateTimeFormat("az-AZ", {
-        day: "2-digit", month: "long", year: "numeric", weekday: "long"
-      }).format(new Date());
+      document.getElementById("dashDate").textContent = formatDateAz(new Date());
 
       const today = new Date().toDateString();
       const yesterday = new Date(Date.now() - 86400000).toDateString();

@@ -70,11 +70,17 @@
       message.textContent = text;
     }
 
+    // Intl.DateTimeFormat("az-AZ", { month:"long", weekday:"long" }) bir çox
+    // brauzer/ICU-da düzgün işləmir ("2026 M09 27, Sun" kimi fallback verir).
+    // Ona görə tarixi əllə formatlayırıq.
+    const AZ_MONTHS = ["yanvar","fevral","mart","aprel","may","iyun","iyul","avqust","sentyabr","oktyabr","noyabr","dekabr"];
+    const AZ_WEEKDAYS = ["bazar","bazar ertəsi","çərşənbə axşamı","çərşənbə","cümə axşamı","cümə","şənbə"];
     function formatDateTime(value) {
-      return new Intl.DateTimeFormat("az-AZ", {
-        weekday: "long", day: "2-digit", month: "long", year: "numeric",
-        hour: "2-digit", minute: "2-digit"
-      }).format(new Date(value));
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return "—";
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${d.getDate()} ${AZ_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${AZ_WEEKDAYS[d.getDay()]} — ${hh}:${mm}`;
     }
 
     function getApplicationId() {
