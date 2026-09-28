@@ -4,7 +4,7 @@
   <base href="/admin/">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Learnup Admin — Məzunlar</title>
+  <title>INSTUDY Admin — Məzunlar</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -84,7 +84,7 @@
 
   <div id="appShell" class="shell">
     <aside>
-      <div class="brand">Learn<span>up</span></div>
+      <div class="brand"><img src="/logo-instudy.png" alt="Instudy" style="height:26px;display:block;"></div>
       <nav>
         <a href="/admin/index.html">Namizədlər</a>
         <a href="/admin/exams/index.html">İmtahanlar</a>
@@ -183,7 +183,7 @@
     function renderAccessGate(title, message) {
       bootScreen.innerHTML = `
         <div style="width:min(100%,460px);background:#fff;border:1px solid #dfe7ea;border-radius:20px;padding:30px;text-align:center;box-shadow:0 18px 45px rgba(20,46,55,.08);">
-          <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Learn<span style="color:#168a74;">up</span></div>
+          <div style="margin-bottom:10px;"><img src="/logo-instudy.png" alt="Instudy" style="height:36px;display:block;margin:0 auto 10px;"></div>
           <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
           <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">${escapeHtml(message)}</p>
           <a href="/admin/login/index.html" style="display:inline-block;background:#127663;color:#fff;text-decoration:none;padding:13px 18px;border-radius:12px;font-weight:800;">Giriş səhifəsinə keç</a>
