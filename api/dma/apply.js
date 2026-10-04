@@ -23,6 +23,28 @@ function applyCors(req, res) {
   res.setHeader("Vary", "Origin");
 }
 
+const TERMINAL_STATUSES = new Set([
+  "NOT_ELIGIBLE", "EXAM_FAILED", "EXAM_NO_SHOW", "INTERVIEW_FAILED", "INTERVIEW_NO_SHOW",
+  "DMA_REJECTED", "EXPELLED", "GRADUATED", "DECLINED"
+]);
+const REAPPLY_COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
+
+function getReapplyError(previous) {
+  if (previous.some(a => !TERMINAL_STATUSES.has(a.current_status))) {
+    return "Bu proqrama artıq aktiv müraciətiniz var.";
+  }
+  const examTimes = previous
+    .filter(a => a.exam_scheduled_at)
+    .map(a => new Date(a.exam_scheduled_at).getTime());
+  if (!examTimes.length) return null;
+  const retryAt = Math.max(...examTimes) + REAPPLY_COOLDOWN_MS;
+  const remainingDays = Math.ceil((retryAt - Date.now()) / 86400000);
+  if (remainingDays > 0) {
+    return `Bu proqrama ${remainingDays} gün sonra yenidən müraciət edə bilərsiniz.`;
+  }
+  return null;
+}
+
 function cleanText(value) {
   return String(value ?? "").trim();
 }
@@ -127,22 +149,20 @@ async function handlePost(req, res) {
   if (existingCandidate) {
     candidateId = existingCandidate.id;
 
-    const { data: dup, error: dupError } = await supabase
+    const { data: previous, error: previousError } = await supabase
       .from("dma_applications")
-      .select("id")
+      .select("current_status, exam_scheduled_at")
       .eq("candidate_id", candidateId)
-      .eq("program_id", program.id)
-      .maybeSingle();
+      .eq("program_id", program.id);
 
-    if (dupError) {
-      console.error("DMA_APPLY_DUP_CHECK_ERROR:", dupError.message);
+    if (previousError) {
+      console.error("DMA_APPLY_PREVIOUS_CHECK_ERROR:", previousError.message);
       return res.status(500).json({ success: false, message: "Texniki xəta baş verdi." });
     }
-    if (dup) {
-      return res.status(409).json({
-        success: false,
-        message: "Bu FİN ilə seçdiyiniz proqrama artıq müraciət edilib."
-      });
+
+    const reapplyError = getReapplyError(previous || []);
+    if (reapplyError) {
+      return res.status(409).json({ success: false, message: reapplyError });
     }
 
     const { error: updateError } = await supabase
