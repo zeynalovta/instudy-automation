@@ -65,7 +65,10 @@
     .seats.full { color:#a33d3d; }
     .loading,.empty,.error { padding:36px 20px; text-align:center; color:var(--muted); }
     .full-width { grid-column: 1 / -1; }
-    .score-input { width:80px; }
+    .score-input { width:64px; }
+    .mini-label { font-size:11px; color:var(--muted); font-weight:700; }
+    .panel:has(> .filters-row) { position:sticky; top:0; z-index:5; margin-bottom:8px; }
+    .filters-row { padding:8px 12px !important; }
     .status-select { border:1px solid #d5dfe3; border-radius:9px; padding:7px 9px; font-size:12px; font-weight:700; }
     .status-select:disabled, .score-input:disabled { opacity:.6; cursor:wait; }
     .delete-btn {
@@ -79,16 +82,16 @@
       .content { grid-template-columns:1fr; padding:18px; }
     }
     .filters-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .filters-row select { padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fff; }
-    .day-panel { margin-bottom:12px; }
-    .day-head { display:flex; justify-content:space-between; padding:10px 16px; background:#fff7f0; border-bottom:1px solid var(--line); font-size:14px; }
-    .slot-row { display:grid; grid-template-columns:64px 1fr auto; gap:12px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); }
-    .slot-time { font-weight:800; font-size:15px; color:var(--green); }
-    .slot-name { font-weight:700; color:var(--ink); text-decoration:none; }
+    .filters-row select { padding:5px 8px; font-size:13px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fff; }
+    .day-panel { margin-bottom:8px; }
+    .day-head { display:flex; justify-content:space-between; padding:5px 12px; background:#fff7f0; border-bottom:1px solid var(--line); font-size:13px; }
+    .slot-row { display:grid; grid-template-columns:48px 1fr auto; gap:8px; align-items:center; padding:5px 12px; border-bottom:1px solid var(--line); }
+    .slot-time { font-weight:800; font-size:13px; color:var(--green); }
+    .slot-name { font-weight:700; font-size:13px; color:var(--ink); text-decoration:none; }
     .slot-name:hover { color:var(--green); }
-    .slot-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+    .slot-sub { font-size:11px; color:var(--muted); }
     .slot-controls { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-    .slot-controls input, .slot-controls select { padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; }
+    .slot-controls input, .slot-controls select { padding:3px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
     .score-input { width:80px; }
     .status-tag { font-size:12px; color:var(--muted); }
     .empty { padding:24px; color:var(--muted); text-align:center; }
@@ -151,8 +154,8 @@
     const CONFIG = {
       dateField: "exam_scheduled_at",
       controls: r => `
-        <input type="datetime-local" data-id="${r.id}" data-field="exam_scheduled_at" value="${toLocalInput(r.exam_scheduled_at)}">
-        <input type="number" class="score-input" data-id="${r.id}" data-field="exam_score" value="${r.exam_score ?? ""}" placeholder="Bal">
+        <span class="mini-label">Tarix</span><input type="datetime-local" data-id="${r.id}" data-field="exam_scheduled_at" value="${toLocalInput(r.exam_scheduled_at)}">
+        <span class="mini-label">Bal</span><input type="number" class="score-input" data-id="${r.id}" data-field="exam_score" value="${r.exam_score ?? ""}" placeholder="Bal">
         <span class="status-tag">${escapeHtml(statusLabel[r.current_status] || r.current_status)}</span>`,
       buildPayload: (r, field, el) => {
         if (field === "exam_scheduled_at") {
