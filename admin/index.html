@@ -191,6 +191,8 @@
               <div class="dash-kpi"><span>Aktiv qrup sayı</span><strong id="dashGroupCount">—</strong></div>
               <div class="dash-kpi"><span>Aktiv tələbə sayı</span><strong id="dashActiveStudents">—</strong></div>
               <div class="dash-kpi"><span>Orta davamiyyət faizi</span><strong id="dashAttendance">—</strong></div>
+              <div class="dash-kpi"><span>Gözləyən lidlər</span><strong id="dashWaitingLeads">—</strong></div>
+              <div class="dash-kpi"><span>Şərhi olan müraciətlər</span><strong id="dashWithNote">—</strong></div>
             </div>
             <div class="table-wrap">
               <table class="dash-table">
@@ -474,6 +476,9 @@
         ? `${Math.round((attendanceRecords.filter(r => r.attended).length / attendanceRecords.length) * 100)}%`
         : "—";
 
+      document.getElementById("dashWaitingLeads").textContent = applications.filter(a => a.current_status === "NEW_APPLICATION" && !a.exam_scheduled_at).length;
+      document.getElementById("dashWithNote").textContent = applications.filter(a => (a.general_note || "").trim()).length;
+
       const byProgram = new Map();
       for (const item of applications) {
         const name = item.programs?.name || "Naməlum";
@@ -481,7 +486,7 @@
           byProgram.set(name, { training: 0, inProcess: 0, today: 0, yesterday: 0 });
         }
         const row = byProgram.get(name);
-        const bucket = stageBucket(item.current_status);
+        const bucket = stageBucket(item);
 
         if (bucket === "ENROLLED") row.training++;
         else if (bucket === "") row.inProcess++;
