@@ -486,6 +486,32 @@
         </section>
 
         <section class="panel full-width">
+          <div class="panel-head">Sertifikat və iş</div>
+          <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px;">
+            <div class="field">
+              <label for="certNameInput">Beynəlxalq sertifikat</label>
+              <input id="certNameInput" value="${escapeHtml(app.certificate_name || "")}" data-previous-value="${escapeHtml(app.certificate_name || "")}" placeholder="Sertifikatın adı">
+            </div>
+            <div class="field">
+              <label for="certDateInput">Sertifikat tarixi</label>
+              <input id="certDateInput" type="date" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
+            </div>
+            <div class="field">
+              <label for="employedDateInput">İşə düzəlmə tarixi</label>
+              <input id="employedDateInput" type="date" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
+            </div>
+            <div class="field">
+              <label for="employerCompanyInput">Şirkət</label>
+              <input id="employerCompanyInput" value="${escapeHtml(app.employer_company || "")}" data-previous-value="${escapeHtml(app.employer_company || "")}" placeholder="Şirkətin adı">
+            </div>
+            <div class="field">
+              <label for="employerPositionInput">Vəzifə</label>
+              <input id="employerPositionInput" value="${escapeHtml(app.employer_position || "")}" data-previous-value="${escapeHtml(app.employer_position || "")}" placeholder="Vəzifə">
+            </div>
+          </div>
+        </section>
+
+        <section class="panel full-width">
           <div class="panel-head">DMA</div>
           <div class="panel-body">
             <div class="field">
@@ -583,6 +609,18 @@
         updateFields(app.id, fields, event.target, messageEl, "Müsahibə nəticəsi saxlanıldı.");
       });
 
+      [
+        ["certNameInput", "certificate_name", "Sertifikat saxlanıldı."],
+        ["certDateInput", "certificate_issued_at", "Sertifikat tarixi saxlanıldı."],
+        ["employedDateInput", "employed_at", "İşə düzəlmə tarixi saxlanıldı."],
+        ["employerCompanyInput", "employer_company", "Şirkət saxlanıldı."],
+        ["employerPositionInput", "employer_position", "Vəzifə saxlanıldı."],
+      ].forEach(([id, field, successText]) => {
+        document.getElementById(id).addEventListener("change", event => {
+          updateField(app.id, field, event.target.value.trim() || null, event.target, messageEl, successText);
+        });
+      });
+
       document.getElementById("groupSelect").addEventListener("change", event => {
         const groupId = event.target.value ? Number(event.target.value) : null;
         const fields = { training_group_id: groupId };
@@ -625,6 +663,7 @@
           current_status, general_note, exam_score, interview_note, created_at,
           exam_scheduled_at, interview_scheduled_at, training_group_id,
           interview_attended, interview_result, dma_status,
+          certificate_name, certificate_issued_at, employed_at, employer_company, employer_position,
           candidates:dma_candidates!dma_applications_candidate_id_fkey (
             id, full_name, fin, birth_date, email, whatsapp_phone, education,
             is_student, is_employed, has_active_voen, address,
