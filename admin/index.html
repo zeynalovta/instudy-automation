@@ -763,11 +763,15 @@
 
     async function updateInterviewResult(applicationId, value, selectEl) {
       const previousValue = selectEl.dataset.previousValue;
+      const current = applications.find(a => a.id === applicationId);
+      const payload = { interview_result: value || null };
+      if (value === "PASSED" && current?.current_status === "INTERVIEW_BOOKED") payload.current_status = "INTERVIEW_PASSED";
+      if (value !== "PASSED" && current?.current_status === "INTERVIEW_PASSED") payload.current_status = "INTERVIEW_BOOKED";
       selectEl.disabled = true;
 
       const { error } = await client
         .from("dma_applications")
-        .update({ interview_result: value || null })
+        .update(payload)
         .eq("id", applicationId);
 
       if (error) {
@@ -779,7 +783,10 @@
       }
 
       const item = applications.find(a => a.id === applicationId);
-      if (item) item.interview_result = value || null;
+      if (item) {
+        item.interview_result = value || null;
+        if (payload.current_status) item.current_status = payload.current_status;
+      }
 
       showTableMessage("success", "Müsahibə nəticəsi saxlanıldı.");
       renderTable();

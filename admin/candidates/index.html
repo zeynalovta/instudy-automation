@@ -552,7 +552,11 @@
       });
 
       document.getElementById("resultSelect").addEventListener("change", event => {
-        updateField(app.id, "interview_result", event.target.value || null, event.target, messageEl, "Müsahibə nəticəsi saxlanıldı.");
+        const value = event.target.value || null;
+        const fields = { interview_result: value };
+        if (value === "PASSED" && app.current_status === "INTERVIEW_BOOKED") fields.current_status = "INTERVIEW_PASSED";
+        if (value !== "PASSED" && app.current_status === "INTERVIEW_PASSED") fields.current_status = "INTERVIEW_BOOKED";
+        updateFields(app.id, fields, event.target, messageEl, "Müsahibə nəticəsi saxlanıldı.");
       });
 
       document.getElementById("dmaSelect").addEventListener("change", event => {
