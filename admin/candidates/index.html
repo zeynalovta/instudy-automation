@@ -533,7 +533,10 @@
 
       document.getElementById("interviewDateInput").addEventListener("change", event => {
         const value = event.target.value ? new Date(event.target.value).toISOString() : null;
-        updateField(app.id, "interview_scheduled_at", value, event.target, messageEl, "Müsahibə tarixi saxlanıldı.");
+        const fields = { interview_scheduled_at: value };
+        if (value && app.current_status === "INTERVIEW_INVITED") fields.current_status = "INTERVIEW_BOOKED";
+        if (!value && app.current_status === "INTERVIEW_BOOKED") fields.current_status = "INTERVIEW_INVITED";
+        updateFields(app.id, fields, event.target, messageEl, "Müsahibə tarixi saxlanıldı.");
       });
 
       document.getElementById("attendanceSelect").addEventListener("change", event => {

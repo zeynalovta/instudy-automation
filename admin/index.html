@@ -867,6 +867,10 @@
       const newValue = inputEl.value ? new Date(inputEl.value).toISOString() : null;
       const current = applications.find(a => a.id === applicationId);
       const payload = { [field]: newValue };
+      if (field === "interview_scheduled_at") {
+        if (newValue && current?.current_status === "INTERVIEW_INVITED") payload.current_status = "INTERVIEW_BOOKED";
+        if (!newValue && current?.current_status === "INTERVIEW_BOOKED") payload.current_status = "INTERVIEW_INVITED";
+      }
       if (field === "exam_scheduled_at") {
         if (newValue && current?.current_status === "NEW_APPLICATION") payload.current_status = "EXAM_BOOKED";
         if (!newValue && current?.current_status === "EXAM_BOOKED") payload.current_status = "NEW_APPLICATION";
