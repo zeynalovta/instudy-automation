@@ -589,12 +589,12 @@
           current_status, general_note, exam_score, interview_note, created_at,
           exam_scheduled_at, interview_scheduled_at,
           interview_attended, interview_result, dma_status,
-          dma_candidates!dma_applications_candidate_id_fkey (
+          candidates:dma_candidates!dma_applications_candidate_id_fkey (
             id, full_name, fin, birth_date, email, whatsapp_phone, education,
             is_student, is_employed, has_active_voen, address,
             attended_dma_course_last_12_months
           ),
-          dma_programs!dma_applications_program_id_fkey ( id, name, slug )
+          programs:dma_programs!dma_applications_program_id_fkey ( id, name, slug )
         `)
         .eq("id", applicationId)
         .single();
