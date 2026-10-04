@@ -520,7 +520,10 @@
 
       document.getElementById("examDateInput").addEventListener("change", event => {
         const value = event.target.value ? new Date(event.target.value).toISOString() : null;
-        updateField(app.id, "exam_scheduled_at", value, event.target, messageEl, "İmtahan tarixi saxlanıldı.");
+        const fields = { exam_scheduled_at: value };
+        if (value && app.current_status === "NEW_APPLICATION") fields.current_status = "EXAM_BOOKED";
+        if (!value && app.current_status === "EXAM_BOOKED") fields.current_status = "NEW_APPLICATION";
+        updateFields(app.id, fields, event.target, messageEl, "İmtahan tarixi saxlanıldı.");
       });
 
       document.getElementById("examScoreInput").addEventListener("change", event => {

@@ -845,11 +845,17 @@
     async function updateScheduledDate(applicationId, field, inputEl) {
       const previousValue = inputEl.dataset.previousValue;
       const newValue = inputEl.value ? new Date(inputEl.value).toISOString() : null;
+      const current = applications.find(a => a.id === applicationId);
+      const payload = { [field]: newValue };
+      if (field === "exam_scheduled_at") {
+        if (newValue && current?.current_status === "NEW_APPLICATION") payload.current_status = "EXAM_BOOKED";
+        if (!newValue && current?.current_status === "EXAM_BOOKED") payload.current_status = "NEW_APPLICATION";
+      }
       inputEl.disabled = true;
 
       const { error } = await client
         .from("dma_applications")
-        .update({ [field]: newValue })
+        .update(payload)
         .eq("id", applicationId);
 
       inputEl.disabled = false;
@@ -863,7 +869,10 @@
 
       inputEl.dataset.previousValue = newValue || "";
       const item = applications.find(a => a.id === applicationId);
-      if (item) item[field] = newValue;
+      if (item) {
+        item[field] = newValue;
+        if (payload.current_status) item.current_status = payload.current_status;
+      }
       showTableMessage("success", "Tarix saxlanıldı.");
 
       // Setting an exam/interview date can unlock other cells in the row
