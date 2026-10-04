@@ -12,6 +12,17 @@
 // qaytarılır. Fərqli proqrama müraciət isə sərbəstdir (yeni application).
 import { supabase } from "../../lib/supabase.js";
 
+const ALLOWED_ORIGINS = new Set(["https://instudy.az", "https://www.instudy.az"]);
+
+function applyCors(req, res) {
+  const origin = req.headers.origin;
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) return;
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Vary", "Origin");
+}
+
 function cleanText(value) {
   return String(value ?? "").trim();
 }
@@ -184,6 +195,8 @@ async function handlePost(req, res) {
 }
 
 export default async function handler(req, res) {
+  applyCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).end();
   try {
     if (req.method === "GET") return await handleGet(req, res);
     if (req.method === "POST") return await handlePost(req, res);
