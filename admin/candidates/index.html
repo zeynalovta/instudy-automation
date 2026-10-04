@@ -344,6 +344,20 @@
       }
     }
 
+    const DMA_STAGES = ["SUBMITTED_TO_DMA", "DMA_APPROVED", "DMA_REJECTED"];
+
+    function stageForDmaStatus(dmaStatus) {
+      return { SUBMITTED: "SUBMITTED_TO_DMA", APPROVED: "DMA_APPROVED", REJECTED: "DMA_REJECTED" }[dmaStatus] || null;
+    }
+
+    function deriveStage(item, { dmaStatus = item.dma_status, groupId = item.training_group_id } = {}) {
+      if (groupId) return "ENROLLED";
+      const dmaStage = stageForDmaStatus(dmaStatus);
+      if (dmaStage) return dmaStage;
+      if (DMA_STAGES.includes(item.current_status) || item.current_status === "ENROLLED") return "INTERVIEW_PASSED";
+      return null;
+    }
+
     function renderProfile(app) {
       const c = app.candidates || {};
       const p = app.programs || {};
@@ -560,7 +574,11 @@
       });
 
       document.getElementById("dmaSelect").addEventListener("change", event => {
-        updateField(app.id, "dma_status", event.target.value || null, event.target, messageEl, "DMA statusu saxlanıldı.");
+        const dmaStatus = event.target.value || null;
+        const fields = { dma_status: dmaStatus };
+        const nextStage = deriveStage(app, { dmaStatus });
+        if (nextStage && nextStage !== app.current_status) fields.current_status = nextStage;
+        updateFields(app.id, fields, event.target, messageEl, "DMA statusu saxlanıldı.");
       });
 
       document.getElementById("saveNoteButton").addEventListener("click", () => {
@@ -587,7 +605,7 @@
         .select(`
           id, eligibility_status, eligibility_reason, unemployment_status,
           current_status, general_note, exam_score, interview_note, created_at,
-          exam_scheduled_at, interview_scheduled_at,
+          exam_scheduled_at, interview_scheduled_at, training_group_id,
           interview_attended, interview_result, dma_status,
           candidates:dma_candidates!dma_applications_candidate_id_fkey (
             id, full_name, fin, birth_date, email, whatsapp_phone, education,

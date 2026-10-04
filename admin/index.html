@@ -351,6 +351,20 @@
       return "";
     }
 
+    const DMA_STAGES = ["SUBMITTED_TO_DMA", "DMA_APPROVED", "DMA_REJECTED"];
+
+    function stageForDmaStatus(dmaStatus) {
+      return { SUBMITTED: "SUBMITTED_TO_DMA", APPROVED: "DMA_APPROVED", REJECTED: "DMA_REJECTED" }[dmaStatus] || null;
+    }
+
+    function deriveStage(item, { dmaStatus = item.dma_status, groupId = item.training_group_id } = {}) {
+      if (groupId) return "ENROLLED";
+      const dmaStage = stageForDmaStatus(dmaStatus);
+      if (dmaStage) return dmaStage;
+      if (DMA_STAGES.includes(item.current_status) || item.current_status === "ENROLLED") return "INTERVIEW_PASSED";
+      return null;
+    }
+
     function selectedStage(item) {
       return stageBucket(item) || (stageLabel[item.current_status] ? item.current_status : "");
     }
@@ -796,9 +810,15 @@
       const previousValue = selectEl.dataset.previousValue;
       selectEl.disabled = true;
 
+      const item = applications.find(a => a.id === applicationId);
+      const dmaStatus = value || null;
+      const payload = { dma_status: dmaStatus };
+      const nextStage = item ? deriveStage(item, { dmaStatus }) : null;
+      if (nextStage && nextStage !== item.current_status) payload.current_status = nextStage;
+
       const { error } = await client
         .from("dma_applications")
-        .update({ dma_status: value || null })
+        .update(payload)
         .eq("id", applicationId);
 
       if (error) {
@@ -809,8 +829,10 @@
         return;
       }
 
-      const item = applications.find(a => a.id === applicationId);
-      if (item) item.dma_status = value || null;
+      if (item) {
+        item.dma_status = dmaStatus;
+        if (payload.current_status) item.current_status = payload.current_status;
+      }
 
       showTableMessage("success", "DMA statusu saxlanıldı: " + (dmaLabel[value] || value));
       renderTable();
@@ -915,9 +937,15 @@
       const previousValue = selectEl.dataset.previousValue;
       selectEl.disabled = true;
 
+      const item = applications.find(a => a.id === applicationId);
+      const trainingGroupId = groupId ? Number(groupId) : null;
+      const payload = { training_group_id: trainingGroupId };
+      const nextStage = item ? deriveStage(item, { groupId: trainingGroupId }) : null;
+      if (nextStage && nextStage !== item.current_status) payload.current_status = nextStage;
+
       const { error } = await client
         .from("dma_applications")
-        .update({ training_group_id: groupId || null })
+        .update(payload)
         .eq("id", applicationId);
 
       selectEl.disabled = false;
@@ -930,11 +958,14 @@
       }
 
       selectEl.dataset.previousValue = groupId;
-      const item = applications.find(a => a.id === applicationId);
-      if (item) item.training_group_id = groupId ? Number(groupId) : null;
+      if (item) {
+        item.training_group_id = trainingGroupId;
+        if (payload.current_status) item.current_status = payload.current_status;
+      }
 
       const group = trainingGroups.find(g => g.id === Number(groupId));
       showTableMessage("success", group ? `Qrupa təyin edildi: ${group.name}` : "Qrup təyinatı silindi.");
+      renderTable();
     }
 
     tbody.addEventListener("change", event => {
