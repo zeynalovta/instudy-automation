@@ -439,13 +439,14 @@
       const resultKnown = app.interview_result !== null;
       const dmaCleared = canManageDma(app);
 
-      const scoreLocked = !app.exam_scheduled_at;
+      const examAttendance = app.current_status === "EXAM_NO_SHOW" ? "NO" : (app.current_status === "EXAM_ATTENDED" || app.exam_score !== null ? "YES" : "");
+      const scoreLocked = !app.exam_scheduled_at || examAttendance !== "YES";
       const interviewDateLocked = !examCleared;
       const attendanceLocked = !examCleared || !interviewScheduled;
       const resultLocked = !examCleared || !interviewScheduled || !attendanceKnown;
       const dmaLocked = !dmaCleared;
 
-      const scoreLockTitle = "Əvvəlcə imtahan tarixi təyin edilməlidir";
+      const scoreLockTitle = !app.exam_scheduled_at ? "Əvvəlcə imtahan tarixi təyin edilməlidir" : "Əvvəlcə \"Gəldi?\" təyin edilməlidir";
       const interviewLockTitle = examCleared
         ? "Əvvəlcə müsahibə tarixi təyin edilməlidir"
         : "Əvvəlcə imtahandan keçməlidir (bal 30+) — və ya müsahibəyə birbaşa dəvət olunmuş olmalıdır";
@@ -537,6 +538,15 @@
               <div class="field">
                 <label for="examDateInput">Tarix</label>
                 <input type="datetime-local" id="examDateInput" value="${toDateTimeLocalValue(app.exam_scheduled_at)}" data-previous-value="${app.exam_scheduled_at || ""}">
+              </div>
+              <div class="field">
+                <label for="examAttSelect">Gəldi?</label>
+                <select id="examAttSelect" data-previous-value="${examAttendance}" ${!app.exam_scheduled_at || app.exam_score !== null ? "disabled" : ""}>
+                  <option value="" ${examAttendance === "" ? "selected" : ""}>Gözlənilir</option>
+                  <option value="YES" ${examAttendance === "YES" ? "selected" : ""}>Gəldi</option>
+                  <option value="NO" ${examAttendance === "NO" ? "selected" : ""}>Gəlmədi</option>
+                </select>
+                ${app.exam_score !== null ? `<p class="field-hint">Bal yazılıbsa, iştirak dəyişdirilməz</p>` : ""}
               </div>
               <div class="field">
                 <label for="examScoreInput">Bal</label>
@@ -732,6 +742,11 @@
         if (value && app.current_status === "NEW_APPLICATION") fields.current_status = "EXAM_BOOKED";
         if (!value && app.current_status === "EXAM_BOOKED") fields.current_status = "NEW_APPLICATION";
         updateFields(app.id, fields, event.target, messageEl, "İmtahan tarixi saxlanıldı.");
+      });
+
+      document.getElementById("examAttSelect").addEventListener("change", event => {
+        const map = { YES: "EXAM_ATTENDED", NO: "EXAM_NO_SHOW", "": "EXAM_BOOKED" };
+        updateFields(app.id, { current_status: map[event.target.value] }, event.target, messageEl, "İmtahan iştirakı saxlanıldı.");
       });
 
       document.getElementById("examScoreInput").addEventListener("change", event => {
