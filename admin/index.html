@@ -317,7 +317,11 @@
     // here, but are normally just a *display* of what exam_score/
     // interview_result already show — see stageBucket().
     const stageLabel = {
+      NEW_APPLICATION: "Yeni müraciət",
+      EXAM_BOOKED: "İmtahan rezervasiyası",
       EXAM_FAILED: "İmtahandan kəsilib",
+      INTERVIEW_INVITED: "Müsahibəyə dəvət",
+      INTERVIEW_BOOKED: "Müsahibə rezervasiyası",
       INTERVIEW_FAILED: "Müsahibədən kəsilib",
       ENROLLED: "Təlimdədir",
       DECLINED: "İmtina edildi",
@@ -338,6 +342,10 @@
       if (item.interview_result === "FAILED") return "INTERVIEW_FAILED";
       if (item.exam_score !== null && item.exam_score < 30) return "EXAM_FAILED";
       return "";
+    }
+
+    function selectedStage(item) {
+      return stageBucket(item) || (stageLabel[item.current_status] ? item.current_status : "");
     }
 
     const dmaLabel = {
@@ -650,9 +658,9 @@
             </td>
             <td>
               <select class="status-select stage-select ${badgeClass(item.current_status)}" data-id="${item.id}" data-previous-value="${item.current_status}">
-                <option value="" disabled ${!stageBucket(item) ? "selected" : ""}>${item.current_status === "NEW_APPLICATION" ? "Yeni müraciət" : "Prosesdədir"}</option>
+                <option value="" disabled ${!selectedStage(item) ? "selected" : ""}>Prosesdədir</option>
                 ${Object.entries(stageLabel).map(([value, label]) => `
-                  <option value="${value}" ${stageBucket(item) === value ? "selected" : ""}
+                  <option value="${value}" ${selectedStage(item) === value ? "selected" : ""}
                     ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
                 `).join("")}
               </select>
