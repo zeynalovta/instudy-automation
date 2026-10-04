@@ -26,7 +26,7 @@
     .dp-input { width:96px; height:28px; padding:0 8px; border:1px solid #dfe7ea; border-radius:7px; font-size:12px; background:#fff; }
     .dp-input:focus, .ts:focus, .ts-input:focus { outline:none; border-color:#ff6800; box-shadow:0 0 0 2px #ff680022; }
     .dp-btn { margin-left:4px; height:28px; width:28px; border:1px solid #dfe7ea; border-radius:7px; background:#fff; cursor:pointer; font-size:13px; padding:0; color:#17232b; }
-    .dp-pop { position:absolute; top:32px; left:0; z-index:50; background:#fff; border:1px solid #dfe7ea; border-radius:12px; box-shadow:0 8px 20px #0002; padding:8px; width:226px; font-size:12px; }
+    .dp-pop { position:fixed; z-index:1000; background:#fff; border:1px solid #dfe7ea; border-radius:12px; box-shadow:0 8px 20px #0002; padding:8px; width:226px; font-size:12px; }
     .dp-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-weight:700; color:#17232b; }
     .dp-head button { background:none; border:0; cursor:pointer; font-size:14px; padding:2px 6px; color:#17232b; width:auto; }
     .dp-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center; }
@@ -93,10 +93,11 @@
     slot.innerHTML = `
       <input class="dp-input" placeholder="gg.aa.iiii" value="${dmy(selected)}">
       <button type="button" class="dp-btn" aria-label="Təqvim">📅</button>
-      <div class="dp-pop" hidden></div>`;
+    `;
     const textEl = slot.querySelector(".dp-input");
     const btn = slot.querySelector(".dp-btn");
-    const pop = slot.querySelector(".dp-pop");
+    const pop = document.createElement("div");
+    pop.className = "dp-pop";
     if (opts.disabled) { textEl.disabled = true; btn.disabled = true; }
 
     function renderPop() {
@@ -116,13 +117,24 @@
         <div class="dp-foot"><button type="button" data-today="1">Bu gün</button><button type="button" data-clear="1">Təmizlə</button></div>`;
     }
 
-    const entry = { host: slot, close: null };
-    function close() { pop.hidden = true; openPops.delete(entry); }
+    const entry = { host: slot, pop: pop, close: null };
+    function close() {
+      if (pop.parentNode) pop.parentNode.removeChild(pop);
+      openPops.delete(entry);
+    }
     entry.close = close;
+    function place() {
+      const r = btn.getBoundingClientRect();
+      const height = 230;
+      const below = window.innerHeight - r.bottom;
+      pop.style.left = Math.min(r.left, window.innerWidth - 240) + "px";
+      pop.style.top = (below < height && r.top > height ? r.top - height - 4 : r.bottom + 4) + "px";
+    }
     function open() {
       [...openPops].forEach(p => p.close());
       renderPop();
-      pop.hidden = false;
+      document.body.appendChild(pop);
+      place();
       openPops.add(entry);
     }
     function pick(ds) {
@@ -132,7 +144,7 @@
       opts.onPick(ds);
     }
 
-    btn.addEventListener("click", e => { e.stopPropagation(); if (pop.hidden) open(); else close(); });
+    btn.addEventListener("click", e => { e.stopPropagation(); if (pop.parentNode) close(); else open(); });
     pop.addEventListener("click", e => {
       const t = e.target;
       if (t.dataset.nav) {
@@ -292,8 +304,12 @@
   }
 
   document.addEventListener("click", e => {
-    [...openPops].forEach(p => { if (!p.host.contains(e.target)) p.close(); });
+    [...openPops].forEach(p => {
+      if (!p.host.contains(e.target) && !p.pop.contains(e.target)) p.close();
+    });
   });
+  window.addEventListener("scroll", () => [...openPops].forEach(p => p.close()), true);
+  window.addEventListener("resize", () => [...openPops].forEach(p => p.close()));
 
   window.ERP = { mountAll, refresh, TRAINING_SLOTS };
 })();
