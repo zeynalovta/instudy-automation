@@ -985,14 +985,14 @@
             general_note,
             training_group_id,
             created_at,
-            dma_candidates!dma_applications_candidate_id_fkey (
+            candidates:dma_candidates!dma_applications_candidate_id_fkey (
               id,
               full_name,
               fin,
               whatsapp_phone,
               email
             ),
-            dma_programs!dma_applications_program_id_fkey (
+            programs:dma_programs!dma_applications_program_id_fkey (
               id,
               name,
               slug
