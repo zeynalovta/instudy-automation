@@ -183,7 +183,7 @@
         <option value="all">Hamısı</option>
       </select>
       <select id="programFilter"><option value="">Bütün proqramlar</option></select>
-      <input type="date" id="dayFilter" title="Tarix">
+      <input type="hidden" id="dayFilter" data-dp title="Tarix">
       <input type="search" id="searchInput" placeholder="Namizəd axtar (ad, telefon, FİN)...">
       <span id="pageMessage" class="message"></span>
     </div>
@@ -197,6 +197,7 @@
 
   </div>
 
+  <script src="/shared/erp-datetime.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../../config.js"></script>
   <script>
@@ -371,7 +372,7 @@
         </tr>
         <tr class="time-row" data-time-row="${r.id}" hidden>
           <td colspan="8">
-            <input type="datetime-local" class="time-edit" data-id="${r.id}" data-field="exam_scheduled_at" value="${toLocalInput(r.exam_scheduled_at)}">
+            <input type="hidden" class="time-edit" data-dtp data-id="${r.id}" data-field="exam_scheduled_at" value="${r.exam_scheduled_at || ""}">
           </td>
         </tr>`;
     }
@@ -414,6 +415,7 @@
               </tbody>`;
           }).join("")}
         </table>`;
+      ERP.mountAll(listEl);
     }
 
     async function loadAndRender() {
@@ -491,6 +493,7 @@
     });
 
     [rangeFilter, programFilter, dayFilter].forEach(el => el.addEventListener("change", render));
+    ERP.mountAll(document.querySelector(".toolbar"));
     searchInput.addEventListener("input", render);
 
     async function init() {

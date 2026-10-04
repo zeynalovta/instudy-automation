@@ -148,6 +148,7 @@
     </main>
   </div>
 
+  <script src="/shared/erp-datetime.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../../config.js"></script>
   <script>
@@ -408,7 +409,7 @@
           <div class="row3">
             <div class="field">
               <label for="contactAt">Tarix və saat</label>
-              <input type="datetime-local" id="contactAt">
+              <input type="hidden" data-dtp id="contactAt">
             </div>
             <div class="field">
               <label for="contactChannel">Kanal</label>
@@ -537,7 +538,7 @@
             <div class="panel-body">
               <div class="field">
                 <label for="examDateInput">Tarix</label>
-                <input type="datetime-local" id="examDateInput" value="${toDateTimeLocalValue(app.exam_scheduled_at)}" data-previous-value="${app.exam_scheduled_at || ""}">
+                <input type="hidden" data-dtp id="examDateInput" value="${app.exam_scheduled_at || ""}" data-previous-value="${app.exam_scheduled_at || ""}">
               </div>
               <div class="field">
                 <label for="examAttSelect">Gəldi?</label>
@@ -562,7 +563,7 @@
             <div class="panel-body">
               <div class="field">
                 <label for="interviewDateInput">Tarix</label>
-                <input type="datetime-local" id="interviewDateInput" value="${toDateTimeLocalValue(app.interview_scheduled_at)}" data-previous-value="${app.interview_scheduled_at || ""}"
+                <input type="hidden" data-dtp id="interviewDateInput" value="${app.interview_scheduled_at || ""}" data-previous-value="${app.interview_scheduled_at || ""}"
                   ${interviewDateLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
                 ${interviewDateLocked ? `<p class="field-hint">${escapeHtml(interviewLockTitle)}</p>` : ""}
               </div>
@@ -668,11 +669,11 @@
                 </div>
                 <div class="field">
                   <label for="certDateInput">Sertifikat tarixi</label>
-                  <input id="certDateInput" type="date" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
+                  <input type="hidden" data-dp id="certDateInput" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
                 </div>
                 <div class="field">
                   <label for="employedDateInput">İşə düzəlmə tarixi</label>
-                  <input id="employedDateInput" type="date" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
+                  <input type="hidden" data-dp id="employedDateInput" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
                 </div>
                 <div class="field">
                   <label for="employerCompanyInput">Şirkət</label>
@@ -693,7 +694,9 @@
         const opening = form.style.display === "none";
         form.style.display = opening ? "block" : "none";
         if (opening && !document.getElementById("contactAt").value) {
-          document.getElementById("contactAt").value = toDateTimeLocalValue(new Date().toISOString());
+          const contactInput = document.getElementById("contactAt");
+          contactInput.value = toDateTimeLocalValue(new Date().toISOString());
+          ERP.refresh(contactInput);
         }
       });
 
@@ -723,6 +726,8 @@
         messageEl.textContent = "Əlaqə qeydi əlavə olundu.";
         await loadProfile(app.id);
       });
+
+      ERP.mountAll(content);
 
       const messageEl = document.getElementById("actionMessage");
       document.getElementById("editInterviewNoteButton").addEventListener("click", () => {
