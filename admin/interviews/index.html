@@ -126,6 +126,16 @@
     .time-edit { padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
     .empty { padding:24px; color:var(--muted); text-align:center; }
     @media (max-width:900px) { .c-prog { display:none; } }
+    .content { grid-template-columns:minmax(0,1fr); gap:8px; padding:20px 24px; }
+    .content > * { min-width:0; }
+    .toolbar { margin:0; padding:0 0 4px; }
+    #rangeFilter { width:160px; }
+    #programFilter { width:200px; }
+    #dayFilter { width:160px; }
+    #searchInput { flex:1; min-width:220px; }
+    .stats { min-height:24px; margin:0 0 6px; }
+    .c-prog { width:180px; }
+    table.grid td { height:56px; }
   </style>
 </head>
 <body>
@@ -169,9 +179,9 @@
       <select id="programFilter"><option value="">Bütün proqramlar</option></select>
       <input type="date" id="dayFilter" title="Tarix">
       <input type="search" id="searchInput" placeholder="Namizəd axtar (ad, telefon, FİN)...">
-      <div class="stats" id="stats"></div>
       <span id="pageMessage" class="message"></span>
     </div>
+    <div class="stats" id="stats"></div>
     <div id="stateMessage" class="loading">Yüklənir...</div>
     <div id="scheduleList"></div>
   </section>
