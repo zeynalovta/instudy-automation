@@ -98,32 +98,34 @@
     [hidden] { display:none !important; }
     .toolbar { position:sticky; top:0; z-index:5; background:var(--bg); display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 0; }
     .toolbar select, .toolbar input { padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff; }
+    .toolbar input[type=search] { min-width:260px; }
     .stats { display:flex; gap:6px; flex-wrap:wrap; }
     .stat { font-size:12px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 9px; }
     .stat b { color:var(--green); }
-    .day-panel { margin-bottom:8px; overflow:visible; }
-    .day-head { display:flex; justify-content:space-between; padding:5px 12px; background:#fff7f0; font-size:12px; font-weight:700; letter-spacing:.02em; }
-    .row { display:grid; grid-template-columns:52px 1fr auto auto 28px; gap:8px; align-items:center; padding:5px 12px; border-bottom:1px solid var(--line); }
-    .time { background:none; border:0; font-weight:800; color:var(--green); font-size:13px; cursor:pointer; padding:0; text-align:left; }
-    .who .name { font-weight:700; font-size:13px; color:var(--ink); text-decoration:none; }
-    .who .name:hover { color:var(--green); }
-    .sub { font-size:11px; color:var(--muted); }
-    .chips { display:flex; gap:4px; flex-wrap:wrap; }
-    .chip { font-size:11px; border:1px solid var(--line); background:#fff; border-radius:999px; padding:2px 8px; cursor:pointer; color:var(--muted); }
-    .chip.on { border-color:#ff6800; background:#ffe9d6; color:#b84500; font-weight:700; }
-    .chip:disabled { opacity:.4; cursor:not-allowed; }
-    .stage { font-size:11px; color:var(--muted); white-space:nowrap; }
-    .more { background:none; border:1px solid var(--line); border-radius:6px; width:26px; height:22px; cursor:pointer; line-height:1; }
-    .menu-wrap { position:relative; }
-    .menu { position:absolute; right:0; top:26px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; z-index:20; min-width:170px; display:flex; flex-direction:column; }
+    table.grid { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:12px; margin-bottom:10px; }
+    table.grid thead th { text-align:left; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 10px; border-bottom:1px solid var(--line); background:#fafbfc; }
+    table.grid td { padding:4px 10px; border-bottom:1px solid #eef2f4; font-size:13px; vertical-align:middle; height:50px; }
+    table.grid tbody tr.data-row:hover td { background:#fff9f5; }
+    .day-row td { background:#fff7f0; height:32px; padding:0 10px; font-size:12px; font-weight:700; border-bottom:1px solid var(--line); }
+    .day-row td span:last-child { float:right; font-weight:600; color:var(--muted); }
+    .c-time { width:64px; font-weight:800; color:var(--green); font-size:14px; }
+    .c-prog { width:150px; color:var(--muted); font-size:12px; }
+    .c-att, .c-res { width:140px; }
+    .c-stat { width:170px; font-size:12px; color:var(--ink); }
+    .c-act { width:40px; text-align:center; position:relative; }
+    .name { font-weight:700; color:var(--ink); text-decoration:none; }
+    .name:hover { color:var(--green); }
+    .sub { font-size:11px; color:var(--muted); margin-top:1px; }
+    .cell-select { height:26px; padding:0 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:#fff; width:100%; }
+    .cell-select:disabled { opacity:.5; cursor:not-allowed; }
+    .more { background:none; border:1px solid var(--line); border-radius:6px; width:28px; height:24px; cursor:pointer; line-height:1; }
+    .menu { position:absolute; right:8px; top:30px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; z-index:20; min-width:170px; display:flex; flex-direction:column; text-align:left; }
     .menu a, .menu button { padding:7px 10px; font-size:13px; text-align:left; background:none; border:0; color:var(--ink); text-decoration:none; cursor:pointer; }
     .menu a:hover, .menu button:hover { background:#fff7f0; }
-    .time-edit { grid-column:1 / -1; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; justify-self:start; }
+    .time-row td { background:#fbfcfd; height:auto; padding:6px 10px; }
+    .time-edit { padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
     .empty { padding:24px; color:var(--muted); text-align:center; }
-    @media (max-width:720px) {
-      .row { grid-template-columns:52px 1fr 28px; }
-      .chips, .stage { grid-column:2 / -1; }
-    }
+    @media (max-width:900px) { .c-prog { display:none; } }
   </style>
 </head>
 <body>
@@ -309,33 +311,44 @@
       const hasDate = !!r.interview_scheduled_at;
       const examOk = r.exam_score === null || r.exam_score === undefined || r.exam_score >= 30;
       const resultOk = hasDate && attended !== null && attended !== undefined && examOk;
-      const chip = (label, active, disabled, attrs) =>
-        `<button type="button" class="chip ${active ? "on" : ""}" ${disabled ? "disabled" : ""} ${attrs}>${label}</button>`;
       return `
-        <div class="row" data-row="${r.id}">
-          <button type="button" class="time" data-action="time" data-id="${r.id}" title="Vaxtı dəyiş">${timeLabel(r.interview_scheduled_at)}</button>
-          <div class="who">
+        <tr class="data-row">
+          <td class="c-time">${timeLabel(r.interview_scheduled_at)}</td>
+          <td>
             <a class="name" href="candidates/index.html?id=${r.id}">${escapeHtml(c.full_name || "—")}</a>
-            <div class="sub">${escapeHtml(c.whatsapp_phone || "—")} · ${escapeHtml(p.name || "—")}</div>
-          </div>
-          <div class="chips">
-            ${chip("Gəldi ✓", attended === "YES", !hasDate, `data-action="att" data-id="${r.id}" data-value="YES"`)}
-            ${chip("Gəlmədi", attended === "NO", !hasDate, `data-action="att" data-id="${r.id}" data-value="NO"`)}
-            ${chip("Keçdi ✓", result === "PASSED", !resultOk, `data-action="res" data-id="${r.id}" data-value="PASSED"`)}
-            ${chip("Keçmədi", result === "FAILED", !resultOk, `data-action="res" data-id="${r.id}" data-value="FAILED"`)}
-            ${result === "RESERVE" ? chip("Ehtiyat", true, !resultOk, `data-action="res" data-id="${r.id}" data-value="RESERVE"`) : ""}
-          </div>
-          <span class="stage">${escapeHtml(statusLabel[r.current_status] || r.current_status)}</span>
-          <div class="menu-wrap">
+            <div class="sub">${escapeHtml(c.whatsapp_phone || "—")}</div>
+          </td>
+          <td class="c-prog">${escapeHtml(p.name || "—")}</td>
+          <td class="c-att">
+            <select class="cell-select" data-action="att" data-id="${r.id}" ${hasDate ? "" : "disabled"}>
+              <option value="" ${attended == null ? "selected" : ""}>Gözlənilir</option>
+              <option value="YES" ${attended === "YES" ? "selected" : ""}>Gəldi</option>
+              <option value="NO" ${attended === "NO" ? "selected" : ""}>Gəlmədi</option>
+            </select>
+          </td>
+          <td class="c-res">
+            <select class="cell-select" data-action="res" data-id="${r.id}" ${resultOk ? "" : "disabled"}>
+              <option value="" ${!result ? "selected" : ""}>Gözləyir</option>
+              <option value="PASSED" ${result === "PASSED" ? "selected" : ""}>Keçdi</option>
+              <option value="FAILED" ${result === "FAILED" ? "selected" : ""}>Keçmədi</option>
+              <option value="RESERVE" ${result === "RESERVE" ? "selected" : ""}>Ehtiyat</option>
+            </select>
+          </td>
+          <td class="c-stat">${escapeHtml(statusLabel[r.current_status] || "Prosesdədir")}</td>
+          <td class="c-act">
             <button type="button" class="more" data-action="menu" data-id="${r.id}">⋯</button>
             <div class="menu" data-menu="${r.id}" hidden>
               <a href="candidates/index.html?id=${r.id}">Profili aç</a>
               <button type="button" data-action="time" data-id="${r.id}">Vaxtı dəyiş</button>
               <a href="candidates/index.html?id=${r.id}#note">Qeyd əlavə et</a>
             </div>
-          </div>
-          <input type="datetime-local" class="time-edit" data-id="${r.id}" data-field="interview_scheduled_at" value="${toLocalInput(r.interview_scheduled_at)}" hidden>
-        </div>`;
+          </td>
+        </tr>
+        <tr class="time-row" data-time-row="${r.id}" hidden>
+          <td colspan="7">
+            <input type="datetime-local" class="time-edit" data-id="${r.id}" data-field="interview_scheduled_at" value="${toLocalInput(r.interview_scheduled_at)}">
+          </td>
+        </tr>`;
     }
 
     function render() {
@@ -353,14 +366,28 @@
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k).push(r);
       });
-      listEl.innerHTML = [...groups.entries()].map(([k, items]) => {
-        const prefix = k === todayKey ? "BUGÜN · " : k === tomorrowKey ? "SABAH · " : "";
-        return `
-          <section class="panel day-panel">
-            <div class="day-head"><span>${prefix}${dayTitle(k)}</span><span>${items.length} nəfər</span></div>
-            ${items.map(rowHtml).join("")}
-          </section>`;
-      }).join("");
+      listEl.innerHTML = `
+        <table class="grid">
+          <thead>
+            <tr>
+              <th class="c-time">Saat</th>
+              <th>Namizəd</th>
+              <th class="c-prog">Proqram</th>
+              <th class="c-att">İştirak</th>
+              <th class="c-res">Nəticə</th>
+              <th class="c-stat">Status</th>
+              <th class="c-act"></th>
+            </tr>
+          </thead>
+          ${[...groups.entries()].map(([k, items]) => {
+            const prefix = k === todayKey ? "BUGÜN · " : k === tomorrowKey ? "SABAH · " : "";
+            return `
+              <tbody>
+                <tr class="day-row"><td colspan="7"><span>${prefix}${dayTitle(k)}</span><span>${items.length} nəfər</span></td></tr>
+                ${items.map(rowHtml).join("")}
+              </tbody>`;
+          }).join("")}
+        </table>`;
     }
 
     async function loadAndRender() {
@@ -412,7 +439,7 @@
       document.querySelectorAll(".menu").forEach(m => { m.hidden = true; });
     }
 
-    listEl.addEventListener("click", async event => {
+    listEl.addEventListener("click", event => {
       const el = event.target.closest("[data-action]");
       if (!el) return;
       const action = el.dataset.action;
@@ -426,20 +453,18 @@
       }
       closeMenus();
       if (action === "time") {
-        const input = listEl.querySelector(`.time-edit[data-id="${id}"]`);
-        input.hidden = false;
-        input.focus();
-        return;
+        const row = listEl.querySelector(`tr[data-time-row="${id}"]`);
+        row.hidden = false;
+        row.querySelector("input").focus();
       }
-      if (action === "att") applyUpdate(id, "interview_attended", el.dataset.value);
-      if (action === "res") applyUpdate(id, "interview_result", el.dataset.value);
     });
 
     listEl.addEventListener("change", event => {
       const el = event.target;
-      if (el.classList.contains("time-edit")) {
-        applyUpdate(Number(el.dataset.id), "interview_scheduled_at", el.value);
-      }
+      const id = Number(el.dataset.id);
+      if (el.dataset.action === "att") applyUpdate(id, "interview_attended", el.value);
+      if (el.dataset.action === "res") applyUpdate(id, "interview_result", el.value);
+      if (el.classList.contains("time-edit")) applyUpdate(id, "interview_scheduled_at", el.value);
     });
 
     document.addEventListener("click", event => {
