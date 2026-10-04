@@ -345,6 +345,7 @@
     }
 
     const DMA_STAGES = ["SUBMITTED_TO_DMA", "DMA_APPROVED", "DMA_REJECTED"];
+    let profileGroups = [];
 
     function stageForDmaStatus(dmaStatus) {
       return { SUBMITTED: "SUBMITTED_TO_DMA", APPROVED: "DMA_APPROVED", REJECTED: "DMA_REJECTED" }[dmaStatus] || null;
@@ -498,6 +499,15 @@
               </select>
               ${dmaLocked ? `<p class="field-hint">${escapeHtml(dmaLockTitle)}</p>` : ""}
             </div>
+            <div class="field">
+              <label for="groupSelect">Təlim qrupu</label>
+              <select id="groupSelect" data-previous-value="${app.training_group_id ?? ""}">
+                <option value="" ${!app.training_group_id ? "selected" : ""}>—</option>
+                ${profileGroups.filter(g => g.program_id === app.programs?.id).map(g => `
+                  <option value="${g.id}" ${app.training_group_id === g.id ? "selected" : ""}>${escapeHtml(g.name)}</option>
+                `).join("")}
+              </select>
+            </div>
           </div>
         </section>
 
@@ -573,6 +583,14 @@
         updateFields(app.id, fields, event.target, messageEl, "Müsahibə nəticəsi saxlanıldı.");
       });
 
+      document.getElementById("groupSelect").addEventListener("change", event => {
+        const groupId = event.target.value ? Number(event.target.value) : null;
+        const fields = { training_group_id: groupId };
+        const nextStage = deriveStage(app, { groupId });
+        if (nextStage && nextStage !== app.current_status) fields.current_status = nextStage;
+        updateFields(app.id, fields, event.target, messageEl, "Təlim qrupu saxlanıldı.");
+      });
+
       document.getElementById("dmaSelect").addEventListener("change", event => {
         const dmaStatus = event.target.value || null;
         const fields = { dma_status: dmaStatus };
@@ -623,6 +641,9 @@
         stateMessage.textContent = "Namizəd tapılmadı.";
         return;
       }
+
+      const { data: groupsData } = await client.from("dma_training_groups").select("id, program_id, name");
+      profileGroups = groupsData || [];
 
       renderProfile(data);
     }
