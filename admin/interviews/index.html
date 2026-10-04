@@ -95,6 +95,35 @@
     .score-input { width:80px; }
     .status-tag { font-size:12px; color:var(--muted); }
     .empty { padding:24px; color:var(--muted); text-align:center; }
+    [hidden] { display:none !important; }
+    .toolbar { position:sticky; top:0; z-index:5; background:var(--bg); display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 0; }
+    .toolbar select, .toolbar input { padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff; }
+    .stats { display:flex; gap:6px; flex-wrap:wrap; }
+    .stat { font-size:12px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 9px; }
+    .stat b { color:var(--green); }
+    .day-panel { margin-bottom:8px; overflow:visible; }
+    .day-head { display:flex; justify-content:space-between; padding:5px 12px; background:#fff7f0; font-size:12px; font-weight:700; letter-spacing:.02em; }
+    .row { display:grid; grid-template-columns:52px 1fr auto auto 28px; gap:8px; align-items:center; padding:5px 12px; border-bottom:1px solid var(--line); }
+    .time { background:none; border:0; font-weight:800; color:var(--green); font-size:13px; cursor:pointer; padding:0; text-align:left; }
+    .who .name { font-weight:700; font-size:13px; color:var(--ink); text-decoration:none; }
+    .who .name:hover { color:var(--green); }
+    .sub { font-size:11px; color:var(--muted); }
+    .chips { display:flex; gap:4px; flex-wrap:wrap; }
+    .chip { font-size:11px; border:1px solid var(--line); background:#fff; border-radius:999px; padding:2px 8px; cursor:pointer; color:var(--muted); }
+    .chip.on { border-color:#ff6800; background:#ffe9d6; color:#b84500; font-weight:700; }
+    .chip:disabled { opacity:.4; cursor:not-allowed; }
+    .stage { font-size:11px; color:var(--muted); white-space:nowrap; }
+    .more { background:none; border:1px solid var(--line); border-radius:6px; width:26px; height:22px; cursor:pointer; line-height:1; }
+    .menu-wrap { position:relative; }
+    .menu { position:absolute; right:0; top:26px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; z-index:20; min-width:170px; display:flex; flex-direction:column; }
+    .menu a, .menu button { padding:7px 10px; font-size:13px; text-align:left; background:none; border:0; color:var(--ink); text-decoration:none; cursor:pointer; }
+    .menu a:hover, .menu button:hover { background:#fff7f0; }
+    .time-edit { grid-column:1 / -1; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; justify-self:start; }
+    .empty { padding:24px; color:var(--muted); text-align:center; }
+    @media (max-width:720px) {
+      .row { grid-template-columns:52px 1fr 28px; }
+      .chips, .stage { grid-column:2 / -1; }
+    }
   </style>
 </head>
 <body>
@@ -128,22 +157,24 @@
   </header>
 
   <section class="content">
-    <section class="panel">
-      <div class="panel-body filters-row">
-        <select id="rangeFilter">
-          <option value="upcoming" selected>Gələcək</option>
-          <option value="week">Növbəti 7 gün</option>
-          <option value="past">Keçmiş</option>
-          <option value="all">Hamısı</option>
-        </select>
-        <select id="programFilter"><option value="">Bütün proqramlar</option></select>
-        <span id="pageMessage" class="message"></span>
-      </div>
-    </section>
+    <div class="toolbar">
+      <select id="rangeFilter">
+        <option value="upcoming" selected>Gələcək</option>
+        <option value="week">Növbəti 7 gün</option>
+        <option value="past">Keçmiş</option>
+        <option value="all">Hamısı</option>
+      </select>
+      <select id="programFilter"><option value="">Bütün proqramlar</option></select>
+      <input type="date" id="dayFilter" title="Tarix">
+      <input type="search" id="searchInput" placeholder="Namizəd axtar (ad, telefon, FİN)...">
+      <div class="stats" id="stats"></div>
+      <span id="pageMessage" class="message"></span>
+    </div>
     <div id="stateMessage" class="loading">Yüklənir...</div>
     <div id="scheduleList"></div>
   </section>
 </main>
+
 
   </div>
 
@@ -151,46 +182,6 @@
   <script src="../../config.js"></script>
   <script>
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const CONFIG = {
-      dateField: "interview_scheduled_at",
-      controls: r => `
-        <span class="mini-label">Tarix</span><input type="datetime-local" data-id="${r.id}" data-field="interview_scheduled_at" value="${toLocalInput(r.interview_scheduled_at)}">
-        <select data-id="${r.id}" data-field="interview_attended">
-          <option value="" ${!r.interview_attended ? "selected" : ""}>Gəldi?</option>
-          <option value="YES" ${r.interview_attended === "YES" ? "selected" : ""}>Bəli</option>
-          <option value="NO" ${r.interview_attended === "NO" ? "selected" : ""}>Xeyr</option>
-        </select>
-        <select data-id="${r.id}" data-field="interview_result">
-          <option value="" ${!r.interview_result ? "selected" : ""}>Nəticə</option>
-          <option value="PASSED" ${r.interview_result === "PASSED" ? "selected" : ""}>Keçdi</option>
-          <option value="FAILED" ${r.interview_result === "FAILED" ? "selected" : ""}>Keçmədi</option>
-          <option value="RESERVE" ${r.interview_result === "RESERVE" ? "selected" : ""}>Ehtiyat</option>
-        </select>
-        <span class="status-tag">${escapeHtml(statusLabel[r.current_status] || r.current_status)}</span>`,
-      buildPayload: (r, field, el) => {
-        if (field === "interview_scheduled_at") {
-          const v = el.value ? new Date(el.value).toISOString() : null;
-          const p = { interview_scheduled_at: v };
-          if (v && r.current_status === "INTERVIEW_INVITED") p.current_status = "INTERVIEW_BOOKED";
-          if (!v && r.current_status === "INTERVIEW_BOOKED") p.current_status = "INTERVIEW_INVITED";
-          return p;
-        }
-        if (field === "interview_attended") {
-          const v = el.value || null;
-          const p = { interview_attended: v };
-          if (v === "NO") p.interview_result = "FAILED";
-          return p;
-        }
-        if (field === "interview_result") {
-          const v = el.value || null;
-          const p = { interview_result: v };
-          if (v === "PASSED" && r.current_status === "INTERVIEW_BOOKED") p.current_status = "INTERVIEW_PASSED";
-          if (v !== "PASSED" && r.current_status === "INTERVIEW_PASSED") p.current_status = "INTERVIEW_BOOKED";
-          return p;
-        }
-        return null;
-      },
-    };
 
     const bootScreen = document.getElementById("bootScreen");
     const appShell = document.getElementById("appShell");
@@ -198,15 +189,21 @@
     const listEl = document.getElementById("scheduleList");
     const rangeFilter = document.getElementById("rangeFilter");
     const programFilter = document.getElementById("programFilter");
+    const dayFilter = document.getElementById("dayFilter");
+    const searchInput = document.getElementById("searchInput");
+    const statsEl = document.getElementById("stats");
     const pageMessage = document.getElementById("pageMessage");
     let rows = [];
 
     const statusLabel = {
-      NEW_APPLICATION: "Yeni müraciət", EXAM_BOOKED: "İmtahan rezervasiyası", EXAM_PASSED: "İmtahandan keçdi",
-      EXAM_FAILED: "İmtahandan kəsilib", INTERVIEW_INVITED: "Müsahibəyə dəvət", INTERVIEW_BOOKED: "Müsahibə rezervasiyası",
-      INTERVIEW_PASSED: "Müsahibədən keçdi", INTERVIEW_FAILED: "Müsahibədən kəsilib", ENROLLED: "Təlimdədir",
-      DECLINED: "İmtina edildi", ELIGIBLE: "Uyğundur",
+      NEW_APPLICATION: "Yeni müraciət", ELIGIBLE: "Uyğundur", EXAM_BOOKED: "İmtahan rezervasiyası",
+      EXAM_FAILED: "İmtahandan kəsilib", EXAM_PASSED: "İmtahandan keçdi",
+      INTERVIEW_INVITED: "Müsahibəyə dəvət", INTERVIEW_BOOKED: "Müsahibə rezervasiyası",
+      INTERVIEW_PASSED: "DMA-ya gözləyir", INTERVIEW_FAILED: "Müsahibədən kəsilib",
+      SUBMITTED_TO_DMA: "DMA-ya göndərildi", DMA_APPROVED: "DMA təsdiqi", DMA_REJECTED: "DMA rədd",
+      ENROLLED: "Təlimdədir", GRADUATED: "Məzun", DECLINED: "İmtina edildi", NOT_ELIGIBLE: "Uyğun deyil",
     };
+    const AZ_MONTHS = ["YANVAR", "FEVRAL", "MART", "APREL", "MAY", "İYUN", "İYUL", "AVQUST", "SENTYABR", "OKTYABR", "NOYABR", "DEKABR"];
 
     function isAdminUser(user) { return user?.app_metadata?.role === "admin"; }
     const VALID_STAFF_SCOPES = ["dma", "all"];
@@ -228,30 +225,25 @@
       const d = new Date(iso); const p = n => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
     }
-    function dayLabel(key) { const [y, m, d] = key.split("-"); return `${d}.${m}.${y}`; }
+    function dayTitle(key) { const [y, m, d] = key.split("-"); return `${d} ${AZ_MONTHS[Number(m) - 1]} ${y}`; }
     function timeLabel(iso) { const d = new Date(iso); const p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; }
     function toLocalInput(iso) {
       if (!iso) return "";
       const d = new Date(iso); const p = n => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
     }
-
-    function showMessage(type, text) {
-      pageMessage.className = "message " + type;
-      pageMessage.textContent = text;
-    }
+    function showMessage(type, text) { pageMessage.className = "message " + type; pageMessage.textContent = text; }
 
     async function loadRows() {
       const { data, error } = await client
         .from("dma_applications")
         .select(`
-          id, current_status, exam_scheduled_at, interview_scheduled_at, exam_score,
-          interview_attended, interview_result,
+          id, current_status, interview_scheduled_at, interview_attended, interview_result, exam_score,
           candidates:dma_candidates!dma_applications_candidate_id_fkey ( full_name, fin, whatsapp_phone ),
           programs:dma_programs!dma_applications_program_id_fkey ( id, name )
         `)
-        .not(CONFIG.dateField, "is", null)
-        .order(CONFIG.dateField, { ascending: true });
+        .not("interview_scheduled_at", "is", null)
+        .order("interview_scheduled_at", { ascending: true });
       if (error) throw error;
       rows = data || [];
     }
@@ -265,8 +257,8 @@
       programFilter.value = current;
     }
 
-    function passesRange(row) {
-      const t = new Date(row[CONFIG.dateField]).getTime();
+    function passesRange(r) {
+      const t = new Date(r.interview_scheduled_at).getTime();
       const today = startOfToday();
       switch (rangeFilter.value) {
         case "upcoming": return t >= today;
@@ -276,38 +268,99 @@
       }
     }
 
+    function passesSearch(r) {
+      const q = searchInput.value.trim().toLocaleLowerCase("az");
+      if (!q) return true;
+      const c = r.candidates || {};
+      return [c.full_name, c.fin, c.whatsapp_phone].join(" ").toLocaleLowerCase("az").includes(q);
+    }
+
+    function visibleRows() {
+      const pid = programFilter.value;
+      const day = dayFilter.value;
+      return rows.filter(r =>
+        passesRange(r) &&
+        (!pid || String(r.programs?.id) === pid) &&
+        (!day || dayKey(r.interview_scheduled_at) === day) &&
+        passesSearch(r)
+      );
+    }
+
+    function renderStats(list) {
+      const todayKey = dayKey(new Date().toISOString());
+      const upcoming = rows.filter(r => new Date(r.interview_scheduled_at).getTime() >= startOfToday()).length;
+      const today = list.filter(r => dayKey(r.interview_scheduled_at) === todayKey).length;
+      const came = list.filter(r => r.interview_attended === "YES").length;
+      const notCame = list.filter(r => r.interview_attended === "NO").length;
+      const waiting = list.filter(r => r.interview_attended === "YES" && !r.interview_result).length;
+      statsEl.innerHTML = `
+        <span class="stat">Bu gün: <b>${today}</b></span>
+        <span class="stat">Gələcək: <b>${upcoming}</b></span>
+        <span class="stat">Gəldi: <b>${came}</b></span>
+        <span class="stat">Gəlmədi: <b>${notCame}</b></span>
+        <span class="stat">Nəticə gözləyir: <b>${waiting}</b></span>`;
+    }
+
     function rowHtml(r) {
       const c = r.candidates || {};
       const p = r.programs || {};
+      const attended = r.interview_attended;
+      const result = r.interview_result;
+      const hasDate = !!r.interview_scheduled_at;
+      const examOk = r.exam_score === null || r.exam_score === undefined || r.exam_score >= 30;
+      const resultOk = hasDate && attended !== null && attended !== undefined && examOk;
+      const chip = (label, active, disabled, attrs) =>
+        `<button type="button" class="chip ${active ? "on" : ""}" ${disabled ? "disabled" : ""} ${attrs}>${label}</button>`;
       return `
-        <div class="slot-row">
-          <div class="slot-time">${timeLabel(r[CONFIG.dateField])}</div>
-          <div>
-            <a class="slot-name" href="candidates/index.html?id=${r.id}">${escapeHtml(c.full_name || "—")}</a>
-            <div class="slot-sub">${escapeHtml(c.fin || "")} · ${escapeHtml(c.whatsapp_phone || "")} · ${escapeHtml(p.name || "")}</div>
+        <div class="row" data-row="${r.id}">
+          <button type="button" class="time" data-action="time" data-id="${r.id}" title="Vaxtı dəyiş">${timeLabel(r.interview_scheduled_at)}</button>
+          <div class="who">
+            <a class="name" href="candidates/index.html?id=${r.id}">${escapeHtml(c.full_name || "—")}</a>
+            <div class="sub">${escapeHtml(c.whatsapp_phone || "—")} · ${escapeHtml(p.name || "—")}</div>
           </div>
-          <div class="slot-controls">${CONFIG.controls(r)}</div>
+          <div class="chips">
+            ${chip("Gəldi ✓", attended === "YES", !hasDate, `data-action="att" data-id="${r.id}" data-value="YES"`)}
+            ${chip("Gəlmədi", attended === "NO", !hasDate, `data-action="att" data-id="${r.id}" data-value="NO"`)}
+            ${chip("Keçdi ✓", result === "PASSED", !resultOk, `data-action="res" data-id="${r.id}" data-value="PASSED"`)}
+            ${chip("Keçmədi", result === "FAILED", !resultOk, `data-action="res" data-id="${r.id}" data-value="FAILED"`)}
+            ${result === "RESERVE" ? chip("Ehtiyat", true, !resultOk, `data-action="res" data-id="${r.id}" data-value="RESERVE"`) : ""}
+          </div>
+          <span class="stage">${escapeHtml(statusLabel[r.current_status] || r.current_status)}</span>
+          <div class="menu-wrap">
+            <button type="button" class="more" data-action="menu" data-id="${r.id}">⋯</button>
+            <div class="menu" data-menu="${r.id}" hidden>
+              <a href="candidates/index.html?id=${r.id}">Profili aç</a>
+              <button type="button" data-action="time" data-id="${r.id}">Vaxtı dəyiş</button>
+              <a href="candidates/index.html?id=${r.id}#note">Qeyd əlavə et</a>
+            </div>
+          </div>
+          <input type="datetime-local" class="time-edit" data-id="${r.id}" data-field="interview_scheduled_at" value="${toLocalInput(r.interview_scheduled_at)}" hidden>
         </div>`;
     }
 
     function render() {
-      const pid = programFilter.value;
-      const filtered = rows.filter(r => passesRange(r) && (!pid || String(r.programs?.id) === pid));
-      if (!filtered.length) {
+      const list = visibleRows().sort((a, b) => new Date(a.interview_scheduled_at) - new Date(b.interview_scheduled_at));
+      renderStats(list);
+      if (!list.length) {
         listEl.innerHTML = `<div class="empty">Bu filtrdə qeyd yoxdur</div>`;
         return;
       }
+      const todayKey = dayKey(new Date().toISOString());
+      const tomorrowKey = dayKey(new Date(Date.now() + 86400000).toISOString());
       const groups = new Map();
-      filtered.forEach(r => {
-        const k = dayKey(r[CONFIG.dateField]);
+      list.forEach(r => {
+        const k = dayKey(r.interview_scheduled_at);
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k).push(r);
       });
-      listEl.innerHTML = [...groups.entries()].map(([k, list]) => `
-        <section class="panel day-panel">
-          <div class="day-head"><strong>${dayLabel(k)}</strong><span>${list.length} nəfər</span></div>
-          ${list.map(rowHtml).join("")}
-        </section>`).join("");
+      listEl.innerHTML = [...groups.entries()].map(([k, items]) => {
+        const prefix = k === todayKey ? "BUGÜN · " : k === tomorrowKey ? "SABAH · " : "";
+        return `
+          <section class="panel day-panel">
+            <div class="day-head"><span>${prefix}${dayTitle(k)}</span><span>${items.length} nəfər</span></div>
+            ${items.map(rowHtml).join("")}
+          </section>`;
+      }).join("");
     }
 
     async function loadAndRender() {
@@ -316,28 +369,85 @@
       render();
     }
 
-    listEl.addEventListener("change", async event => {
-      const el = event.target;
-      const id = Number(el.dataset.id);
-      const field = el.dataset.field;
-      const row = rows.find(r => r.id === id);
-      if (!row || !field) return;
-      const payload = CONFIG.buildPayload(row, field, el);
+    function buildPayload(r, field, value) {
+      if (field === "interview_scheduled_at") {
+        const v = value ? new Date(value).toISOString() : null;
+        const p = { interview_scheduled_at: v };
+        if (v && r.current_status === "INTERVIEW_INVITED") p.current_status = "INTERVIEW_BOOKED";
+        if (!v && r.current_status === "INTERVIEW_BOOKED") p.current_status = "INTERVIEW_INVITED";
+        return p;
+      }
+      if (field === "interview_attended") {
+        const v = value || null;
+        const p = { interview_attended: v };
+        if (v === "NO") p.interview_result = "FAILED";
+        return p;
+      }
+      if (field === "interview_result") {
+        const v = value || null;
+        const p = { interview_result: v };
+        if (v === "PASSED" && r.current_status === "INTERVIEW_BOOKED") p.current_status = "INTERVIEW_PASSED";
+        if (v !== "PASSED" && r.current_status === "INTERVIEW_PASSED") p.current_status = "INTERVIEW_BOOKED";
+        return p;
+      }
+      return null;
+    }
+
+    async function applyUpdate(id, field, value) {
+      const r = rows.find(x => x.id === id);
+      if (!r) return;
+      const payload = buildPayload(r, field, value);
       if (!payload) return;
-      el.disabled = true;
       const { error } = await client.from("dma_applications").update(payload).eq("id", id);
       if (error) {
-        console.error("Schedule update error:", error);
+        console.error("Interview update error:", error);
         showMessage("error", "Yenilənmədi: " + error.message);
-        await loadAndRender();
         return;
       }
       showMessage("success", "Saxlanıldı.");
       await loadAndRender();
+    }
+
+    function closeMenus() {
+      document.querySelectorAll(".menu").forEach(m => { m.hidden = true; });
+    }
+
+    listEl.addEventListener("click", async event => {
+      const el = event.target.closest("[data-action]");
+      if (!el) return;
+      const action = el.dataset.action;
+      const id = Number(el.dataset.id);
+      if (action === "menu") {
+        const menu = listEl.querySelector(`[data-menu="${id}"]`);
+        const wasHidden = menu.hidden;
+        closeMenus();
+        menu.hidden = !wasHidden;
+        return;
+      }
+      closeMenus();
+      if (action === "time") {
+        const input = listEl.querySelector(`.time-edit[data-id="${id}"]`);
+        input.hidden = false;
+        input.focus();
+        return;
+      }
+      if (action === "att") applyUpdate(id, "interview_attended", el.dataset.value);
+      if (action === "res") applyUpdate(id, "interview_result", el.dataset.value);
     });
 
-    rangeFilter.addEventListener("change", render);
-    programFilter.addEventListener("change", render);
+    listEl.addEventListener("change", event => {
+      const el = event.target;
+      if (el.classList.contains("time-edit")) {
+        applyUpdate(Number(el.dataset.id), "interview_scheduled_at", el.value);
+      }
+    });
+
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".menu-wrap")) closeMenus();
+    });
+
+    [rangeFilter, programFilter, dayFilter].forEach(el => el.addEventListener("change", render));
+    searchInput.addEventListener("input", render);
 
     async function init() {
       try {
@@ -365,7 +475,7 @@
         stateMessage.style.display = "none";
         await loadAndRender();
       } catch (error) {
-        console.error("Schedule init error:", error);
+        console.error("Interview init error:", error);
         bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
       }
     }
