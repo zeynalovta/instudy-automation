@@ -95,6 +95,49 @@
     .score-input { width:80px; }
     .status-tag { font-size:12px; color:var(--muted); }
     .empty { padding:24px; color:var(--muted); text-align:center; }
+    [hidden] { display:none !important; }
+    .toolbar { position:sticky; top:0; z-index:5; background:var(--bg); display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 0; }
+    .toolbar select, .toolbar input { padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff; }
+    .toolbar input[type=search] { min-width:260px; }
+    .stats { display:flex; gap:6px; flex-wrap:wrap; }
+    .stat { font-size:12px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 9px; }
+    .stat b { color:var(--green); }
+    table.grid { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:12px; margin-bottom:10px; }
+    table.grid thead th { text-align:left; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 10px; border-bottom:1px solid var(--line); background:#fafbfc; }
+    table.grid td { padding:4px 10px; border-bottom:1px solid #eef2f4; font-size:13px; vertical-align:middle; height:50px; }
+    table.grid tbody tr.data-row:hover td { background:#fff9f5; }
+    .day-row td { background:#fff7f0; height:32px; padding:0 10px; font-size:12px; font-weight:700; border-bottom:1px solid var(--line); }
+    .day-row td span:last-child { float:right; font-weight:600; color:var(--muted); }
+    .c-time { width:64px; font-weight:800; color:var(--green); font-size:14px; }
+    .c-prog { width:150px; color:var(--muted); font-size:12px; }
+    .c-att, .c-res { width:140px; }
+    .c-stat { width:170px; font-size:12px; color:var(--ink); }
+    .c-act { width:40px; text-align:center; position:relative; }
+    .name { font-weight:700; color:var(--ink); text-decoration:none; }
+    .name:hover { color:var(--green); }
+    .sub { font-size:11px; color:var(--muted); margin-top:1px; }
+    .cell-select { height:26px; padding:0 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:#fff; width:100%; }
+    .cell-select:disabled { opacity:.5; cursor:not-allowed; }
+    .more { background:none; border:1px solid var(--line); border-radius:6px; width:28px; height:24px; cursor:pointer; line-height:1; }
+    .menu { position:absolute; right:8px; top:30px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; z-index:20; min-width:170px; display:flex; flex-direction:column; text-align:left; }
+    .menu a, .menu button { padding:7px 10px; font-size:13px; text-align:left; background:none; border:0; color:var(--ink); text-decoration:none; cursor:pointer; }
+    .menu a:hover, .menu button:hover { background:#fff7f0; }
+    .time-row td { background:#fbfcfd; height:auto; padding:6px 10px; }
+    .time-edit { padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
+    .empty { padding:24px; color:var(--muted); text-align:center; }
+    @media (max-width:900px) { .c-prog { display:none; } }
+    .content { grid-template-columns:minmax(0,1fr); gap:8px; padding:20px 24px; }
+    .content > * { min-width:0; }
+    .toolbar { margin:0; padding:0 0 4px; }
+    #rangeFilter { width:160px; }
+    #programFilter { width:200px; }
+    #dayFilter { width:160px; }
+    #searchInput { flex:1; min-width:220px; }
+    .stats { min-height:24px; margin:0 0 6px; }
+    .c-prog { width:180px; }
+    .c-score { width:110px; }
+    .cell-input { width:80px; height:26px; padding:0 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
+    table.grid td { height:56px; }
   </style>
 </head>
 <body>
@@ -128,22 +171,25 @@
   </header>
 
   <section class="content">
-    <section class="panel">
-      <div class="panel-body filters-row">
-        <select id="rangeFilter">
-          <option value="upcoming" selected>Gələcək</option>
-          <option value="week">Növbəti 7 gün</option>
-          <option value="past">Keçmiş</option>
-          <option value="all">Hamısı</option>
-        </select>
-        <select id="programFilter"><option value="">Bütün proqramlar</option></select>
-        <span id="pageMessage" class="message"></span>
-      </div>
-    </section>
+    <div class="toolbar">
+      <select id="rangeFilter">
+        <option value="upcoming" selected>Gələcək</option>
+        <option value="week">Növbəti 7 gün</option>
+        <option value="past">Keçmiş</option>
+        <option value="all">Hamısı</option>
+      </select>
+      <select id="programFilter"><option value="">Bütün proqramlar</option></select>
+      <input type="date" id="dayFilter" title="Tarix">
+      <input type="search" id="searchInput" placeholder="Namizəd axtar (ad, telefon, FİN)...">
+      <span id="pageMessage" class="message"></span>
+    </div>
+    <div class="stats" id="stats"></div>
     <div id="stateMessage" class="loading">Yüklənir...</div>
     <div id="scheduleList"></div>
   </section>
 </main>
+
+
 
   </div>
 
@@ -151,24 +197,6 @@
   <script src="../../config.js"></script>
   <script>
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const CONFIG = {
-      dateField: "exam_scheduled_at",
-      controls: r => `
-        <span class="mini-label">Tarix</span><input type="datetime-local" data-id="${r.id}" data-field="exam_scheduled_at" value="${toLocalInput(r.exam_scheduled_at)}">
-        <span class="mini-label">Bal</span><input type="number" class="score-input" data-id="${r.id}" data-field="exam_score" value="${r.exam_score ?? ""}" placeholder="Bal">
-        <span class="status-tag">${escapeHtml(statusLabel[r.current_status] || r.current_status)}</span>`,
-      buildPayload: (r, field, el) => {
-        if (field === "exam_scheduled_at") {
-          const v = el.value ? new Date(el.value).toISOString() : null;
-          const p = { exam_scheduled_at: v };
-          if (v && r.current_status === "NEW_APPLICATION") p.current_status = "EXAM_BOOKED";
-          if (!v && r.current_status === "EXAM_BOOKED") p.current_status = "NEW_APPLICATION";
-          return p;
-        }
-        if (field === "exam_score") return { exam_score: el.value === "" ? null : Number(el.value) };
-        return null;
-      },
-    };
 
     const bootScreen = document.getElementById("bootScreen");
     const appShell = document.getElementById("appShell");
@@ -176,15 +204,21 @@
     const listEl = document.getElementById("scheduleList");
     const rangeFilter = document.getElementById("rangeFilter");
     const programFilter = document.getElementById("programFilter");
+    const dayFilter = document.getElementById("dayFilter");
+    const searchInput = document.getElementById("searchInput");
+    const statsEl = document.getElementById("stats");
     const pageMessage = document.getElementById("pageMessage");
     let rows = [];
 
     const statusLabel = {
-      NEW_APPLICATION: "Yeni müraciət", EXAM_BOOKED: "İmtahan rezervasiyası", EXAM_PASSED: "İmtahandan keçdi",
-      EXAM_FAILED: "İmtahandan kəsilib", INTERVIEW_INVITED: "Müsahibəyə dəvət", INTERVIEW_BOOKED: "Müsahibə rezervasiyası",
-      INTERVIEW_PASSED: "Müsahibədən keçdi", INTERVIEW_FAILED: "Müsahibədən kəsilib", ENROLLED: "Təlimdədir",
-      DECLINED: "İmtina edildi", ELIGIBLE: "Uyğundur",
+      NEW_APPLICATION: "Yeni müraciət", ELIGIBLE: "Uyğundur", EXAM_BOOKED: "İmtahan rezervasiyası",
+      EXAM_FAILED: "İmtahandan kəsilib", EXAM_PASSED: "İmtahandan keçdi",
+      INTERVIEW_INVITED: "Müsahibəyə dəvət", INTERVIEW_BOOKED: "Müsahibə rezervasiyası",
+      INTERVIEW_PASSED: "DMA-ya gözləyir", INTERVIEW_FAILED: "Müsahibədən kəsilib",
+      SUBMITTED_TO_DMA: "DMA-ya göndərildi", DMA_APPROVED: "DMA təsdiqi", DMA_REJECTED: "DMA rədd",
+      ENROLLED: "Təlimdədir", GRADUATED: "Məzun", DECLINED: "İmtina edildi", NOT_ELIGIBLE: "Uyğun deyil",
     };
+    const AZ_MONTHS = ["YANVAR", "FEVRAL", "MART", "APREL", "MAY", "İYUN", "İYUL", "AVQUST", "SENTYABR", "OKTYABR", "NOYABR", "DEKABR"];
 
     function isAdminUser(user) { return user?.app_metadata?.role === "admin"; }
     const VALID_STAFF_SCOPES = ["dma", "all"];
@@ -206,30 +240,25 @@
       const d = new Date(iso); const p = n => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
     }
-    function dayLabel(key) { const [y, m, d] = key.split("-"); return `${d}.${m}.${y}`; }
+    function dayTitle(key) { const [y, m, d] = key.split("-"); return `${d} ${AZ_MONTHS[Number(m) - 1]} ${y}`; }
     function timeLabel(iso) { const d = new Date(iso); const p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; }
     function toLocalInput(iso) {
       if (!iso) return "";
       const d = new Date(iso); const p = n => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
     }
-
-    function showMessage(type, text) {
-      pageMessage.className = "message " + type;
-      pageMessage.textContent = text;
-    }
+    function showMessage(type, text) { pageMessage.className = "message " + type; pageMessage.textContent = text; }
 
     async function loadRows() {
       const { data, error } = await client
         .from("dma_applications")
         .select(`
-          id, current_status, exam_scheduled_at, interview_scheduled_at, exam_score,
-          interview_attended, interview_result,
+          id, current_status, exam_scheduled_at, exam_score,
           candidates:dma_candidates!dma_applications_candidate_id_fkey ( full_name, fin, whatsapp_phone ),
           programs:dma_programs!dma_applications_program_id_fkey ( id, name )
         `)
-        .not(CONFIG.dateField, "is", null)
-        .order(CONFIG.dateField, { ascending: true });
+        .not("exam_scheduled_at", "is", null)
+        .order("exam_scheduled_at", { ascending: true });
       if (error) throw error;
       rows = data || [];
     }
@@ -243,8 +272,8 @@
       programFilter.value = current;
     }
 
-    function passesRange(row) {
-      const t = new Date(row[CONFIG.dateField]).getTime();
+    function passesRange(r) {
+      const t = new Date(r.exam_scheduled_at).getTime();
       const today = startOfToday();
       switch (rangeFilter.value) {
         case "upcoming": return t >= today;
@@ -254,38 +283,106 @@
       }
     }
 
+    function passesSearch(r) {
+      const q = searchInput.value.trim().toLocaleLowerCase("az");
+      if (!q) return true;
+      const c = r.candidates || {};
+      return [c.full_name, c.fin, c.whatsapp_phone].join(" ").toLocaleLowerCase("az").includes(q);
+    }
+
+    function visibleRows() {
+      const pid = programFilter.value;
+      const day = dayFilter.value;
+      return rows.filter(r =>
+        passesRange(r) &&
+        (!pid || String(r.programs?.id) === pid) &&
+        (!day || dayKey(r.exam_scheduled_at) === day) &&
+        passesSearch(r)
+      );
+    }
+
+    function renderStats(list) {
+      const todayKey = dayKey(new Date().toISOString());
+      const upcoming = rows.filter(r => new Date(r.exam_scheduled_at).getTime() >= startOfToday()).length;
+      const today = list.filter(r => dayKey(r.exam_scheduled_at) === todayKey).length;
+      const passed = list.filter(r => r.exam_score !== null && r.exam_score >= 30).length;
+      const failed = list.filter(r => r.exam_score !== null && r.exam_score < 30).length;
+      const waiting = list.filter(r => r.exam_score === null).length;
+      statsEl.innerHTML = `
+        <span class="stat">Bu gün: <b>${today}</b></span>
+        <span class="stat">Gələcək: <b>${upcoming}</b></span>
+        <span class="stat">Keçdi (30+): <b>${passed}</b></span>
+        <span class="stat">Keçmədi: <b>${failed}</b></span>
+        <span class="stat">Bal gözləyir: <b>${waiting}</b></span>`;
+    }
+
     function rowHtml(r) {
       const c = r.candidates || {};
       const p = r.programs || {};
       return `
-        <div class="slot-row">
-          <div class="slot-time">${timeLabel(r[CONFIG.dateField])}</div>
-          <div>
-            <a class="slot-name" href="candidates/index.html?id=${r.id}">${escapeHtml(c.full_name || "—")}</a>
-            <div class="slot-sub">${escapeHtml(c.fin || "")} · ${escapeHtml(c.whatsapp_phone || "")} · ${escapeHtml(p.name || "")}</div>
-          </div>
-          <div class="slot-controls">${CONFIG.controls(r)}</div>
-        </div>`;
+        <tr class="data-row">
+          <td class="c-time">${timeLabel(r.exam_scheduled_at)}</td>
+          <td>
+            <a class="name" href="candidates/index.html?id=${r.id}">${escapeHtml(c.full_name || "—")}</a>
+            <div class="sub">${escapeHtml(c.whatsapp_phone || "—")}</div>
+          </td>
+          <td class="c-prog">${escapeHtml(p.name || "—")}</td>
+          <td class="c-score">
+            <input type="number" class="cell-input" data-action="score" data-id="${r.id}" value="${r.exam_score ?? ""}" placeholder="Bal">
+          </td>
+          <td class="c-stat">${escapeHtml(statusLabel[r.current_status] || "Prosesdədir")}</td>
+          <td class="c-act">
+            <button type="button" class="more" data-action="menu" data-id="${r.id}">⋯</button>
+            <div class="menu" data-menu="${r.id}" hidden>
+              <a href="candidates/index.html?id=${r.id}">Profili aç</a>
+              <button type="button" data-action="time" data-id="${r.id}">Vaxtı dəyiş</button>
+              <a href="candidates/index.html?id=${r.id}#note">Qeyd əlavə et</a>
+            </div>
+          </td>
+        </tr>
+        <tr class="time-row" data-time-row="${r.id}" hidden>
+          <td colspan="6">
+            <input type="datetime-local" class="time-edit" data-id="${r.id}" data-field="exam_scheduled_at" value="${toLocalInput(r.exam_scheduled_at)}">
+          </td>
+        </tr>`;
     }
 
     function render() {
-      const pid = programFilter.value;
-      const filtered = rows.filter(r => passesRange(r) && (!pid || String(r.programs?.id) === pid));
-      if (!filtered.length) {
+      const list = visibleRows().sort((a, b) => new Date(a.exam_scheduled_at) - new Date(b.exam_scheduled_at));
+      renderStats(list);
+      if (!list.length) {
         listEl.innerHTML = `<div class="empty">Bu filtrdə qeyd yoxdur</div>`;
         return;
       }
+      const todayKey = dayKey(new Date().toISOString());
+      const tomorrowKey = dayKey(new Date(Date.now() + 86400000).toISOString());
       const groups = new Map();
-      filtered.forEach(r => {
-        const k = dayKey(r[CONFIG.dateField]);
+      list.forEach(r => {
+        const k = dayKey(r.exam_scheduled_at);
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k).push(r);
       });
-      listEl.innerHTML = [...groups.entries()].map(([k, list]) => `
-        <section class="panel day-panel">
-          <div class="day-head"><strong>${dayLabel(k)}</strong><span>${list.length} nəfər</span></div>
-          ${list.map(rowHtml).join("")}
-        </section>`).join("");
+      listEl.innerHTML = `
+        <table class="grid">
+          <thead>
+            <tr>
+              <th class="c-time">Saat</th>
+              <th>Namizəd</th>
+              <th class="c-prog">Proqram</th>
+              <th class="c-score">İmtahan balı</th>
+              <th class="c-stat">Status</th>
+              <th class="c-act"></th>
+            </tr>
+          </thead>
+          ${[...groups.entries()].map(([k, items]) => {
+            const prefix = k === todayKey ? "BUGÜN · " : k === tomorrowKey ? "SABAH · " : "";
+            return `
+              <tbody>
+                <tr class="day-row"><td colspan="6"><span>${prefix}${dayTitle(k)}</span><span>${items.length} nəfər</span></td></tr>
+                ${items.map(rowHtml).join("")}
+              </tbody>`;
+          }).join("")}
+        </table>`;
     }
 
     async function loadAndRender() {
@@ -294,28 +391,70 @@
       render();
     }
 
-    listEl.addEventListener("change", async event => {
-      const el = event.target;
-      const id = Number(el.dataset.id);
-      const field = el.dataset.field;
-      const row = rows.find(r => r.id === id);
-      if (!row || !field) return;
-      const payload = CONFIG.buildPayload(row, field, el);
+    function buildPayload(r, field, value) {
+      if (field === "exam_scheduled_at") {
+        const v = value ? new Date(value).toISOString() : null;
+        const p = { exam_scheduled_at: v };
+        if (v && r.current_status === "NEW_APPLICATION") p.current_status = "EXAM_BOOKED";
+        if (!v && r.current_status === "EXAM_BOOKED") p.current_status = "NEW_APPLICATION";
+        return p;
+      }
+      if (field === "exam_score") return { exam_score: value === "" || value === null ? null : Number(value) };
+      return null;
+    }
+
+    async function applyUpdate(id, field, value) {
+      const r = rows.find(x => x.id === id);
+      if (!r) return;
+      const payload = buildPayload(r, field, value);
       if (!payload) return;
-      el.disabled = true;
       const { error } = await client.from("dma_applications").update(payload).eq("id", id);
       if (error) {
-        console.error("Schedule update error:", error);
+        console.error("Exam update error:", error);
         showMessage("error", "Yenilənmədi: " + error.message);
-        await loadAndRender();
         return;
       }
       showMessage("success", "Saxlanıldı.");
       await loadAndRender();
+    }
+
+    function closeMenus() {
+      document.querySelectorAll(".menu").forEach(m => { m.hidden = true; });
+    }
+
+    listEl.addEventListener("click", event => {
+      const el = event.target.closest("[data-action]");
+      if (!el) return;
+      const action = el.dataset.action;
+      const id = Number(el.dataset.id);
+      if (action === "menu") {
+        const menu = listEl.querySelector(`[data-menu="${id}"]`);
+        const wasHidden = menu.hidden;
+        closeMenus();
+        menu.hidden = !wasHidden;
+        return;
+      }
+      closeMenus();
+      if (action === "time") {
+        const row = listEl.querySelector(`tr[data-time-row="${id}"]`);
+        row.hidden = false;
+        row.querySelector("input").focus();
+      }
     });
 
-    rangeFilter.addEventListener("change", render);
-    programFilter.addEventListener("change", render);
+    listEl.addEventListener("change", event => {
+      const el = event.target;
+      const id = Number(el.dataset.id);
+      if (el.dataset.action === "score") applyUpdate(id, "exam_score", el.value);
+      if (el.classList.contains("time-edit")) applyUpdate(id, "exam_scheduled_at", el.value);
+    });
+
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".c-act")) closeMenus();
+    });
+
+    [rangeFilter, programFilter, dayFilter].forEach(el => el.addEventListener("change", render));
+    searchInput.addEventListener("input", render);
 
     async function init() {
       try {
@@ -343,7 +482,7 @@
         stateMessage.style.display = "none";
         await loadAndRender();
       } catch (error) {
-        console.error("Schedule init error:", error);
+        console.error("Exam init error:", error);
         bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
       }
     }
