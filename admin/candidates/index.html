@@ -84,6 +84,24 @@
       aside { display:none; }
       .content { grid-template-columns:1fr; padding:18px; }
     }
+    .timeline { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:8px; }
+    .tl-step { border:1px solid var(--line); border-radius:12px; padding:8px 10px; background:#fff; font-size:12px; }
+    .tl-step.done { border-color:#ffc9a3; background:#fff7f0; }
+    .tl-step.current { border-color:#ff6800; background:#ffe9d6; }
+    .tl-step.failed { border-color:#e0a09a; background:#fdf1f0; }
+    .tl-title { font-weight:800; margin-bottom:2px; }
+    .tl-text { color:var(--muted); }
+    .cols3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin-bottom:12px; }
+    .cols3 > .panel, .cols3 > section { margin:0; }
+    .row3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0 12px; }
+    .header-key { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:6px 16px; }
+    .header-key dt, .details dt { color:var(--muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .header-key dd, .details dd { margin:2px 0 0; font-size:13px; }
+    .details { margin-top:8px; }
+    .details summary { cursor:pointer; color:var(--muted); font-size:13px; font-weight:700; }
+    .details .info-grid { margin-top:8px; }
+    .link-btn { background:none; border:0; color:#ff6800; font-weight:700; cursor:pointer; padding:2px 0; }
+    .note-view { font-size:13px; margin-bottom:2px; white-space:pre-wrap; }
   </style>
 </head>
 <body>
@@ -385,6 +403,20 @@
 
       pageTitle.textContent = c.full_name || "Namizəd profili";
 
+      const tlState = {
+        exam: app.exam_score !== null ? "done" : (app.exam_scheduled_at ? "current" : "pending"),
+        interview: app.interview_result === "PASSED" ? "done" : app.interview_result === "FAILED" ? "failed" : (app.interview_scheduled_at ? "current" : "pending"),
+        dma: app.dma_status === "APPROVED" ? "done" : app.dma_status === "REJECTED" ? "failed" : (app.dma_status ? "current" : "pending"),
+      };
+      const enrolled = !!app.training_group_id || app.current_status === "ENROLLED";
+      const groupName = (profileGroups.find(g => g.id === app.training_group_id) || {}).name;
+      const tlIcon = s => ({ done: "✓", current: "●", failed: "✕", pending: "○" })[s];
+      const tlStep = (title, text, state) => `
+        <div class="tl-step ${state}">
+          <div class="tl-title">${tlIcon(state)} ${title}</div>
+          <div class="tl-text">${escapeHtml(text)}</div>
+        </div>`;
+
       content.innerHTML = `
         <section class="panel full-width">
           <div class="panel-head">
@@ -395,174 +427,208 @@
             </span>
           </div>
           <div class="panel-body">
-            <dl class="info-grid">
-              <div><dt>FİN</dt><dd>${escapeHtml(c.fin || "—")}</dd></div>
-              <div><dt>Doğum tarixi</dt><dd>${formatDate(c.birth_date)}${age !== null ? ` (${age} yaş)` : ""}</dd></div>
-              <div><dt>Email</dt><dd>${escapeHtml(c.email || "—")}</dd></div>
-              <div><dt>WhatsApp</dt><dd>${escapeHtml(c.whatsapp_phone || "—")}</dd></div>
+            <div class="header-key">
+              <div><dt>Yaş</dt><dd>${age !== null ? age : "—"}</dd></div>
               <div><dt>Proqram</dt><dd>${escapeHtml(p.name || "—")}</dd></div>
               <div><dt>Təhsil</dt><dd>${escapeHtml(c.education || "—")}</dd></div>
-              <div><dt>Tələbədir</dt><dd>${yesNo(c.is_student)}</dd></div>
               <div><dt>İşləyir</dt><dd>${yesNo(c.is_employed)}</dd></div>
-              <div><dt>Aktiv VÖEN</dt><dd>${yesNo(c.has_active_voen)}</dd></div>
-              <div><dt>Son 1 il DMA kursu</dt><dd>${yesNo(c.attended_dma_course_last_12_months)}</dd></div>
-              <div><dt>Ünvan</dt><dd>${escapeHtml(c.address || "—")}</dd></div>
-              <div><dt>Müraciət tarixi</dt><dd>${formatDate(app.created_at, true)}</dd></div>
-            </dl>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head">Uyğunluq</div>
-          <div class="panel-body">
-            <dl class="info-grid">
-              <div><dt>Uyğunluq statusu</dt><dd>${escapeHtml(eligibilityLabel[app.eligibility_status] || app.eligibility_status)}</dd></div>
-              <div><dt>Səbəb</dt><dd>${escapeHtml(app.eligibility_reason || "—")}</dd></div>
-              <div><dt>İşsizlik statusu</dt><dd>${escapeHtml(app.unemployment_status || "—")}</dd></div>
-            </dl>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head">İmtahan</div>
-          <div class="panel-body">
-            <div class="field">
-              <label for="examDateInput">İmtahan tarixi</label>
-              <input type="datetime-local" id="examDateInput" value="${toDateTimeLocalValue(app.exam_scheduled_at)}" data-previous-value="${app.exam_scheduled_at || ""}">
+              <div><dt>WhatsApp</dt><dd>${escapeHtml(c.whatsapp_phone || "—")}</dd></div>
             </div>
-            <div class="field">
-              <label for="examScoreInput">Bal</label>
-              <input type="number" id="examScoreInput" value="${app.exam_score ?? ""}" data-previous-value="${app.exam_score ?? ""}" placeholder="—"
-                ${scoreLocked ? `disabled title="${escapeHtml(scoreLockTitle)}"` : ""}>
-              ${scoreLocked ? `<p class="field-hint">${escapeHtml(scoreLockTitle)}</p>` : ""}
-            </div>
+            <details class="details">
+              <summary>Ətraflı məlumat</summary>
+              <dl class="info-grid">
+                <div><dt>FİN</dt><dd>${escapeHtml(c.fin || "—")}</dd></div>
+                <div><dt>Doğum tarixi</dt><dd>${formatDate(c.birth_date)}</dd></div>
+                <div><dt>Email</dt><dd>${escapeHtml(c.email || "—")}</dd></div>
+                <div><dt>Tələbədir</dt><dd>${yesNo(c.is_student)}</dd></div>
+                <div><dt>Aktiv VÖEN</dt><dd>${yesNo(c.has_active_voen)}</dd></div>
+                <div><dt>Son 1 il DMA kursu</dt><dd>${yesNo(c.attended_dma_course_last_12_months)}</dd></div>
+                <div><dt>Ünvan</dt><dd>${escapeHtml(c.address || "—")}</dd></div>
+                <div><dt>Müraciət tarixi</dt><dd>${formatDate(app.created_at, true)}</dd></div>
+              </dl>
+            </details>
           </div>
         </section>
 
         <section class="panel full-width">
-          <div class="panel-head">Müsahibə</div>
+          <div class="panel-head">Proses</div>
           <div class="panel-body">
-            <div class="field">
-              <label for="interviewDateInput">Müsahibə tarixi</label>
-              <input type="datetime-local" id="interviewDateInput" value="${toDateTimeLocalValue(app.interview_scheduled_at)}" data-previous-value="${app.interview_scheduled_at || ""}"
-                ${interviewDateLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
-              ${interviewDateLocked ? `<p class="field-hint">${escapeHtml(interviewLockTitle)}</p>` : ""}
+            <div class="timeline">
+              ${tlStep("Uyğunluq", eligibilityLabel[app.eligibility_status] || "—", app.eligibility_status ? "done" : "pending")}
+              ${tlStep("İmtahan", app.exam_score !== null ? `${app.exam_score} bal` : app.exam_scheduled_at ? formatDate(app.exam_scheduled_at, true) : "Gözləyir", tlState.exam)}
+              ${tlStep("Müsahibə", app.interview_result === "PASSED" ? "Keçdi" : app.interview_result === "FAILED" ? "Keçmədi" : app.interview_scheduled_at ? formatDate(app.interview_scheduled_at, true) : "Gözləyir", tlState.interview)}
+              ${tlStep("DMA", dmaLabel[app.dma_status] || "Gözləyir", tlState.dma)}
+              ${tlStep("Təlim", groupName || (enrolled ? "Təlimdədir" : "Gözləyir"), enrolled ? "done" : "pending")}
             </div>
-            <div class="field">
-              <label for="attendanceSelect">Gəldi?</label>
-              <select id="attendanceSelect" data-previous-value="${app.interview_attended ?? ""}"
-                ${attendanceLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
-                <option value="" disabled ${!attendanceKnown ? "selected" : ""}>—</option>
-                <option value="YES" ${app.interview_attended === "YES" ? "selected" : ""}>Bəli</option>
-                <option value="NO" ${app.interview_attended === "NO" ? "selected" : ""}>Xeyr</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="resultSelect">Müsahibə nəticəsi</label>
-              <select id="resultSelect" data-previous-value="${app.interview_result ?? ""}"
-                ${resultLocked ? `disabled title="${escapeHtml(resultLockTitle)}"` : ""}>
-                <option value="" disabled ${!resultKnown ? "selected" : ""}>—</option>
-                <option value="PASSED" ${app.interview_result === "PASSED" ? "selected" : ""}>Keçdi</option>
-                <option value="FAILED" ${app.interview_result === "FAILED" ? "selected" : ""}>Keçmədi</option>
-                <option value="RESERVE" ${app.interview_result === "RESERVE" ? "selected" : ""}>Ehtiyat</option>
-              </select>
-              ${resultLocked ? `<p class="field-hint">${escapeHtml(resultLockTitle)}</p>` : ""}
-            </div>
+          </div>
+        </section>
 
-            ${app.current_status === "INTERVIEW_INVITED" ? `
+        <div class="cols3">
+          <section class="panel">
+            <div class="panel-head">Uyğunluq</div>
+            <div class="panel-body">
+              <dl class="info-grid">
+                <div><dt>Status</dt><dd>${escapeHtml(eligibilityLabel[app.eligibility_status] || app.eligibility_status)}</dd></div>
+                <div><dt>Səbəb</dt><dd>${escapeHtml(app.eligibility_reason || "—")}</dd></div>
+                <div><dt>İşsizlik</dt><dd>${escapeHtml(app.unemployment_status || "—")}</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">İmtahan</div>
+            <div class="panel-body">
               <div class="field">
-                <button id="copyInterviewLinkButton" type="button">Müsahibə linkini kopyala</button>
+                <label for="examDateInput">Tarix</label>
+                <input type="datetime-local" id="examDateInput" value="${toDateTimeLocalValue(app.exam_scheduled_at)}" data-previous-value="${app.exam_scheduled_at || ""}">
               </div>
-            ` : ""}
+              <div class="field">
+                <label for="examScoreInput">Bal</label>
+                <input type="number" id="examScoreInput" value="${app.exam_score ?? ""}" data-previous-value="${app.exam_score ?? ""}" placeholder="—"
+                  ${scoreLocked ? `disabled title="${escapeHtml(scoreLockTitle)}"` : ""}>
+                ${scoreLocked ? `<p class="field-hint">${escapeHtml(scoreLockTitle)}</p>` : ""}
+              </div>
+            </div>
+          </section>
 
-            <div class="field">
-              <label for="interviewNoteInput">Müsahibə qeydi</label>
-              <textarea id="interviewNoteInput" placeholder="Müsahibə ilə bağlı qeyd əlavə et...">${escapeHtml(app.interview_note || "")}</textarea>
-              <div style="margin-top:12px;">
-                <button id="saveInterviewNoteButton">Qeydi saxla</button>
+          <section class="panel">
+            <div class="panel-head">Müsahibə</div>
+            <div class="panel-body">
+              <div class="field">
+                <label for="interviewDateInput">Tarix</label>
+                <input type="datetime-local" id="interviewDateInput" value="${toDateTimeLocalValue(app.interview_scheduled_at)}" data-previous-value="${app.interview_scheduled_at || ""}"
+                  ${interviewDateLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
+                ${interviewDateLocked ? `<p class="field-hint">${escapeHtml(interviewLockTitle)}</p>` : ""}
+              </div>
+              <div class="row3">
+                <div class="field">
+                  <label for="attendanceSelect">Gəldi?</label>
+                  <select id="attendanceSelect" data-previous-value="${app.interview_attended ?? ""}"
+                    ${attendanceLocked ? `disabled title="${escapeHtml(interviewLockTitle)}"` : ""}>
+                    <option value="" disabled ${!attendanceKnown ? "selected" : ""}>—</option>
+                    <option value="YES" ${app.interview_attended === "YES" ? "selected" : ""}>Bəli</option>
+                    <option value="NO" ${app.interview_attended === "NO" ? "selected" : ""}>Xeyr</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="resultSelect">Nəticə</label>
+                  <select id="resultSelect" data-previous-value="${app.interview_result ?? ""}"
+                    ${resultLocked ? `disabled title="${escapeHtml(resultLockTitle)}"` : ""}>
+                    <option value="" disabled ${!resultKnown ? "selected" : ""}>—</option>
+                    <option value="PASSED" ${app.interview_result === "PASSED" ? "selected" : ""}>Keçdi</option>
+                    <option value="FAILED" ${app.interview_result === "FAILED" ? "selected" : ""}>Keçmədi</option>
+                    <option value="RESERVE" ${app.interview_result === "RESERVE" ? "selected" : ""}>Ehtiyat</option>
+                  </select>
+                  ${resultLocked ? `<p class="field-hint">${escapeHtml(resultLockTitle)}</p>` : ""}
+                </div>
+              </div>
+              ${app.current_status === "INTERVIEW_INVITED" ? `
+                <div class="field">
+                  <button id="copyInterviewLinkButton" type="button">Müsahibə linkini kopyala</button>
+                </div>
+              ` : ""}
+              <div class="field">
+                <label>Müsahibə qeydi</label>
+                <div id="interviewNoteView" class="note-view">${escapeHtml(app.interview_note || "") || `<span style="color:var(--muted)">Qeyd yoxdur</span>`}</div>
+                <button type="button" id="editInterviewNoteButton" class="link-btn">Redaktə et</button>
+                <div id="interviewNoteEdit" style="display:none;">
+                  <textarea id="interviewNoteInput" placeholder="Müsahibə ilə bağlı qeyd...">${escapeHtml(app.interview_note || "")}</textarea>
+                  <div style="margin-top:8px;">
+                    <button id="saveInterviewNoteButton">Qeydi saxla</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel full-width">
+          <div class="panel-head">DMA və gedişat</div>
+          <div class="panel-body">
+            <div class="row3">
+              <div class="field">
+                <label for="dmaSelect">DMA statusu</label>
+                <select id="dmaSelect" data-previous-value="${app.dma_status ?? ""}"
+                  ${dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>
+                  <option value="" disabled ${!app.dma_status ? "selected" : ""}>—</option>
+                  ${Object.entries(dmaLabel).map(([value, label]) => `
+                    <option value="${value}" ${app.dma_status === value ? "selected" : ""}>${escapeHtml(label)}</option>
+                  `).join("")}
+                </select>
+                ${dmaLocked ? `<p class="field-hint">${escapeHtml(dmaLockTitle)}</p>` : ""}
+              </div>
+              <div class="field">
+                <label for="groupSelect">Təlim qrupu</label>
+                <select id="groupSelect" data-previous-value="${app.training_group_id ?? ""}">
+                  <option value="" ${!app.training_group_id ? "selected" : ""}>—</option>
+                  ${profileGroups.filter(g => g.program_id === app.programs?.id).map(g => `
+                    <option value="${g.id}" ${app.training_group_id === g.id ? "selected" : ""}>${escapeHtml(g.name)}</option>
+                  `).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label for="statusSelect">Ümumi status</label>
+                <select id="statusSelect" data-previous-value="${app.current_status}">
+                  <option value="" disabled ${!stageBucket(app) ? "selected" : ""}>Prosesdədir</option>
+                  ${Object.entries(stageLabel).map(([value, label]) => `
+                    <option value="${value}" ${stageBucket(app) === value ? "selected" : ""}
+                      ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
+                  `).join("")}
+                </select>
               </div>
             </div>
           </div>
         </section>
 
-        <section class="panel full-width">
-          <div class="panel-head">DMA</div>
-          <div class="panel-body">
-            <div class="field">
-              <label for="dmaSelect">DMA statusu</label>
-              <select id="dmaSelect" data-previous-value="${app.dma_status ?? ""}"
-                ${dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>
-                <option value="" disabled ${!app.dma_status ? "selected" : ""}>—</option>
-                ${Object.entries(dmaLabel).map(([value, label]) => `
-                  <option value="${value}" ${app.dma_status === value ? "selected" : ""}>${escapeHtml(label)}</option>
-                `).join("")}
-              </select>
-              ${dmaLocked ? `<p class="field-hint">${escapeHtml(dmaLockTitle)}</p>` : ""}
+        <div class="cols3">
+          <section class="panel">
+            <div class="panel-head">Daxili qeyd (staff)</div>
+            <div class="panel-body">
+              <textarea id="noteInput" placeholder="Bu namizəd haqqında qeyd...">${escapeHtml(app.general_note || "")}</textarea>
+              <div style="margin-top:8px;">
+                <button id="saveNoteButton">Qeydi saxla</button>
+              </div>
+              <div id="actionMessage" class="message"></div>
             </div>
-            <div class="field">
-              <label for="groupSelect">Təlim qrupu</label>
-              <select id="groupSelect" data-previous-value="${app.training_group_id ?? ""}">
-                <option value="" ${!app.training_group_id ? "selected" : ""}>—</option>
-                ${profileGroups.filter(g => g.program_id === app.programs?.id).map(g => `
-                  <option value="${g.id}" ${app.training_group_id === g.id ? "selected" : ""}>${escapeHtml(g.name)}</option>
-                `).join("")}
-              </select>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="panel full-width">
-          <div class="panel-head">Ümumi gedişat</div>
-          <div class="panel-body">
-            <select id="statusSelect" data-previous-value="${app.current_status}">
-              <option value="" disabled ${!stageBucket(app) ? "selected" : ""}>Prosesdədir</option>
-              ${Object.entries(stageLabel).map(([value, label]) => `
-                <option value="${value}" ${stageBucket(app) === value ? "selected" : ""}
-                  ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
-              `).join("")}
-            </select>
-          </div>
-        </section>
-
-        <section class="panel full-width">
-          <div class="panel-head">Daxili qeyd (staff)</div>
-          <div class="panel-body">
-            <textarea id="noteInput" placeholder="Bu namizəd haqqında qeyd əlavə et...">${escapeHtml(app.general_note || "")}</textarea>
-            <div style="margin-top:12px;">
-              <button id="saveNoteButton">Qeydi saxla</button>
+          <section class="panel">
+            <div class="panel-head">Sertifikat və iş</div>
+            <div class="panel-body">
+              <div class="row3">
+                <div class="field">
+                  <label for="certNameInput">Beynəlxalq sertifikat</label>
+                  <input id="certNameInput" value="${escapeHtml(app.certificate_name || "")}" data-previous-value="${escapeHtml(app.certificate_name || "")}" placeholder="Sertifikatın adı">
+                </div>
+                <div class="field">
+                  <label for="certDateInput">Sertifikat tarixi</label>
+                  <input id="certDateInput" type="date" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
+                </div>
+                <div class="field">
+                  <label for="employedDateInput">İşə düzəlmə tarixi</label>
+                  <input id="employedDateInput" type="date" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
+                </div>
+                <div class="field">
+                  <label for="employerCompanyInput">Şirkət</label>
+                  <input id="employerCompanyInput" value="${escapeHtml(app.employer_company || "")}" data-previous-value="${escapeHtml(app.employer_company || "")}" placeholder="Şirkətin adı">
+                </div>
+                <div class="field">
+                  <label for="employerPositionInput">Vəzifə</label>
+                  <input id="employerPositionInput" value="${escapeHtml(app.employer_position || "")}" data-previous-value="${escapeHtml(app.employer_position || "")}" placeholder="Vəzifə">
+                </div>
+              </div>
             </div>
-          </div>
-          <div id="actionMessage" class="message"></div>
-        </section>
-
-        <section class="panel full-width">
-          <div class="panel-head">Sertifikat və iş</div>
-          <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px;">
-            <div class="field">
-              <label for="certNameInput">Beynəlxalq sertifikat</label>
-              <input id="certNameInput" value="${escapeHtml(app.certificate_name || "")}" data-previous-value="${escapeHtml(app.certificate_name || "")}" placeholder="Sertifikatın adı">
-            </div>
-            <div class="field">
-              <label for="certDateInput">Sertifikat tarixi</label>
-              <input id="certDateInput" type="date" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
-            </div>
-            <div class="field">
-              <label for="employedDateInput">İşə düzəlmə tarixi</label>
-              <input id="employedDateInput" type="date" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
-            </div>
-            <div class="field">
-              <label for="employerCompanyInput">Şirkət</label>
-              <input id="employerCompanyInput" value="${escapeHtml(app.employer_company || "")}" data-previous-value="${escapeHtml(app.employer_company || "")}" placeholder="Şirkətin adı">
-            </div>
-            <div class="field">
-              <label for="employerPositionInput">Vəzifə</label>
-              <input id="employerPositionInput" value="${escapeHtml(app.employer_position || "")}" data-previous-value="${escapeHtml(app.employer_position || "")}" placeholder="Vəzifə">
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       `;
 
       const messageEl = document.getElementById("actionMessage");
+      document.getElementById("editInterviewNoteButton").addEventListener("click", () => {
+        document.getElementById("interviewNoteView").style.display = "none";
+        document.getElementById("editInterviewNoteButton").style.display = "none";
+        document.getElementById("interviewNoteEdit").style.display = "block";
+      });
+
 
       document.getElementById("statusSelect").addEventListener("change", event => {
         updateField(app.id, "current_status", event.target.value, event.target, messageEl, "Status yeniləndi.");
