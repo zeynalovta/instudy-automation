@@ -486,32 +486,6 @@
         </section>
 
         <section class="panel full-width">
-          <div class="panel-head">Sertifikat və iş</div>
-          <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px;">
-            <div class="field">
-              <label for="certNameInput">Beynəlxalq sertifikat</label>
-              <input id="certNameInput" value="${escapeHtml(app.certificate_name || "")}" data-previous-value="${escapeHtml(app.certificate_name || "")}" placeholder="Sertifikatın adı">
-            </div>
-            <div class="field">
-              <label for="certDateInput">Sertifikat tarixi</label>
-              <input id="certDateInput" type="date" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
-            </div>
-            <div class="field">
-              <label for="employedDateInput">İşə düzəlmə tarixi</label>
-              <input id="employedDateInput" type="date" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
-            </div>
-            <div class="field">
-              <label for="employerCompanyInput">Şirkət</label>
-              <input id="employerCompanyInput" value="${escapeHtml(app.employer_company || "")}" data-previous-value="${escapeHtml(app.employer_company || "")}" placeholder="Şirkətin adı">
-            </div>
-            <div class="field">
-              <label for="employerPositionInput">Vəzifə</label>
-              <input id="employerPositionInput" value="${escapeHtml(app.employer_position || "")}" data-previous-value="${escapeHtml(app.employer_position || "")}" placeholder="Vəzifə">
-            </div>
-          </div>
-        </section>
-
-        <section class="panel full-width">
           <div class="panel-head">DMA</div>
           <div class="panel-body">
             <div class="field">
@@ -559,6 +533,32 @@
             </div>
           </div>
           <div id="actionMessage" class="message"></div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Sertifikat və iş</div>
+          <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px;">
+            <div class="field">
+              <label for="certNameInput">Beynəlxalq sertifikat</label>
+              <input id="certNameInput" value="${escapeHtml(app.certificate_name || "")}" data-previous-value="${escapeHtml(app.certificate_name || "")}" placeholder="Sertifikatın adı">
+            </div>
+            <div class="field">
+              <label for="certDateInput">Sertifikat tarixi</label>
+              <input id="certDateInput" type="date" value="${app.certificate_issued_at || ""}" data-previous-value="${app.certificate_issued_at || ""}">
+            </div>
+            <div class="field">
+              <label for="employedDateInput">İşə düzəlmə tarixi</label>
+              <input id="employedDateInput" type="date" value="${app.employed_at || ""}" data-previous-value="${app.employed_at || ""}">
+            </div>
+            <div class="field">
+              <label for="employerCompanyInput">Şirkət</label>
+              <input id="employerCompanyInput" value="${escapeHtml(app.employer_company || "")}" data-previous-value="${escapeHtml(app.employer_company || "")}" placeholder="Şirkətin adı">
+            </div>
+            <div class="field">
+              <label for="employerPositionInput">Vəzifə</label>
+              <input id="employerPositionInput" value="${escapeHtml(app.employer_position || "")}" data-previous-value="${escapeHtml(app.employer_position || "")}" placeholder="Vəzifə">
+            </div>
+          </div>
         </section>
       `;
 
