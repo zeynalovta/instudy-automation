@@ -9,6 +9,7 @@ declare
   v_candidate record;
   v_status text;
   v_age integer;
+  v_program_slug text;
 begin
   select has_active_voen, attended_dma_course_last_12_months, is_student, is_employed, birth_date
   into v_candidate
@@ -24,7 +25,12 @@ begin
   );
 
   new.eligibility_status := v_status;
-  new.current_status := 'NEW_APPLICATION';
+  select slug into v_program_slug from public.dma_programs where id = new.program_id;
+
+  new.current_status := case
+    when v_status = 'PRELIMINARILY_ELIGIBLE' and v_program_slug = 'computer_operator' then 'INTERVIEW_INVITED'
+    else 'NEW_APPLICATION'
+  end;
 
   if v_candidate.birth_date is not null then
     v_age := date_part('year', age(current_date, v_candidate.birth_date));
