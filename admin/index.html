@@ -344,6 +344,13 @@
       return "";
     }
 
+    function stageLockTitle(value, item) {
+      if (value === "ENROLLED" && !canManageDma(item)) return "Əvvəlcə DMA təsdiqi lazımdır";
+      if (value === "INTERVIEW_INVITED" && !canManageInterview(item)) return "Əvvəlcə imtahandan keçməlidir";
+      if (value === "INTERVIEW_BOOKED" && !item.interview_scheduled_at) return "Əvvəlcə müsahibə tarixi təyin edilməlidir";
+      return "";
+    }
+
     function selectedStage(item) {
       return stageBucket(item) || (stageLabel[item.current_status] ? item.current_status : "");
     }
@@ -661,7 +668,7 @@
                 <option value="" disabled ${!selectedStage(item) ? "selected" : ""}>Prosesdədir</option>
                 ${Object.entries(stageLabel).map(([value, label]) => `
                   <option value="${value}" ${selectedStage(item) === value ? "selected" : ""}
-                    ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
+                    ${stageLockTitle(value, item) ? `disabled title="${escapeHtml(stageLockTitle(value, item))}"` : ""}>${escapeHtml(label)}</option>
                 `).join("")}
               </select>
             </td>
