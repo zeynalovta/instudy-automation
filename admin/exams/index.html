@@ -4,7 +4,7 @@
   <base href="/admin/">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INSTUDY Admin — İmtahanlar</title>
+  <title>INSTUDY Admin — {TITLE}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -78,6 +78,20 @@
       aside { display:none; }
       .content { grid-template-columns:1fr; padding:18px; }
     }
+    .filters-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .filters-row select { padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fff; }
+    .day-panel { margin-bottom:12px; }
+    .day-head { display:flex; justify-content:space-between; padding:10px 16px; background:#fff7f0; border-bottom:1px solid var(--line); font-size:14px; }
+    .slot-row { display:grid; grid-template-columns:64px 1fr auto; gap:12px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); }
+    .slot-time { font-weight:800; font-size:15px; color:var(--green); }
+    .slot-name { font-weight:700; color:var(--ink); text-decoration:none; }
+    .slot-name:hover { color:var(--green); }
+    .slot-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+    .slot-controls { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .slot-controls input, .slot-controls select { padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; }
+    .score-input { width:80px; }
+    .status-tag { font-size:12px; color:var(--muted); }
+    .empty { padding:24px; color:var(--muted); text-align:center; }
   </style>
 </head>
 <body>
@@ -102,450 +116,231 @@
     </aside>
 
     <main>
-      <header class="topbar">
-        <h1>İmtahanlar</h1>
-        <div class="user-area">
-          <span id="userEmail"></span>
-          <button id="logoutButton" class="logout">Çıxış</button>
-        </div>
-      </header>
+  <header class="topbar">
+    <h1>İmtahanlar</h1>
+    <div class="user-area">
+      <span id="userEmail"></span>
+      <button id="logoutButton" class="logout">Çıxış</button>
+    </div>
+  </header>
 
-      <section class="content">
-        <section class="panel">
-          <div class="panel-head">Yeni sessiya</div>
-          <div class="panel-body">
-            <div id="formMessage" class="message"></div>
-            <form id="sessionForm">
-              <div class="field">
-                <label for="programSelect">Proqram</label>
-                <select id="programSelect" required>
-                  <option value="">Seç...</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="dateInput">Tarix</label>
-                <input id="dateInput" type="date" required>
-              </div>
-              <div class="field">
-                <label for="timeInput">Vaxt</label>
-                <input id="timeInput" type="time" required>
-              </div>
-              <div class="field">
-                <label for="capacityInput">Tutum (yer sayı)</label>
-                <input id="capacityInput" type="number" min="1" value="20" required>
-              </div>
-              <button id="submitButton" type="submit">Sessiya yarat</button>
-            </form>
-          </div>
-        </section>
+  <section class="content">
+    <section class="panel">
+      <div class="panel-body filters-row">
+        <select id="rangeFilter">
+          <option value="upcoming" selected>Gələcək</option>
+          <option value="week">Növbəti 7 gün</option>
+          <option value="past">Keçmiş</option>
+          <option value="all">Hamısı</option>
+        </select>
+        <select id="programFilter"><option value="">Bütün proqramlar</option></select>
+        <span id="pageMessage" class="message"></span>
+      </div>
+    </section>
+    <div id="stateMessage" class="loading">Yüklənir...</div>
+    <div id="scheduleList"></div>
+  </section>
+</main>
 
-        <section class="panel">
-          <div class="panel-head">Mövcud sessiyalar</div>
-          <div id="sessionsMessage" class="message" style="margin:14px 20px 0;"></div>
-          <div class="table-wrap">
-            <div id="stateMessage" class="loading">Yüklənir...</div>
-            <table id="sessionsTable" hidden>
-              <thead>
-                <tr>
-                  <th>Proqram</th>
-                  <th>Tarix / vaxt</th>
-                  <th>Yerlər</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="sessionsBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="panel full-width">
-          <div class="panel-head">Rezervasiyalar — iştirak və bal</div>
-          <div id="bookingsMessage" class="message" style="margin:14px 20px 0;"></div>
-          <div class="table-wrap">
-            <div id="bookingsState" class="loading">Yüklənir...</div>
-            <table id="bookingsTable" hidden>
-              <thead>
-                <tr>
-                  <th>Namizəd</th>
-                  <th>FİN</th>
-                  <th>Proqram</th>
-                  <th>Sessiya</th>
-                  <th>Bal</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="bookingsBody"></tbody>
-            </table>
-          </div>
-        </section>
-      </section>
-    </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../../config.js"></script>
   <script>
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const CONFIG = {
+      dateField: "exam_scheduled_at",
+      controls: r => `
+        <input type="datetime-local" data-id="${r.id}" data-field="exam_scheduled_at" value="${toLocalInput(r.exam_scheduled_at)}">
+        <input type="number" class="score-input" data-id="${r.id}" data-field="exam_score" value="${r.exam_score ?? ""}" placeholder="Bal">
+        <span class="status-tag">${escapeHtml(statusLabel[r.current_status] || r.current_status)}</span>`,
+      buildPayload: (r, field, el) => {
+        if (field === "exam_scheduled_at") {
+          const v = el.value ? new Date(el.value).toISOString() : null;
+          const p = { exam_scheduled_at: v };
+          if (v && r.current_status === "NEW_APPLICATION") p.current_status = "EXAM_BOOKED";
+          if (!v && r.current_status === "EXAM_BOOKED") p.current_status = "NEW_APPLICATION";
+          return p;
+        }
+        if (field === "exam_score") return { exam_score: el.value === "" ? null : Number(el.value) };
+        return null;
+      },
+    };
 
     const bootScreen = document.getElementById("bootScreen");
     const appShell = document.getElementById("appShell");
     const stateMessage = document.getElementById("stateMessage");
-    const table = document.getElementById("sessionsTable");
-    const tbody = document.getElementById("sessionsBody");
-    const programSelect = document.getElementById("programSelect");
-    const form = document.getElementById("sessionForm");
-    const submitButton = document.getElementById("submitButton");
-    const formMessage = document.getElementById("formMessage");
+    const listEl = document.getElementById("scheduleList");
+    const rangeFilter = document.getElementById("rangeFilter");
+    const programFilter = document.getElementById("programFilter");
+    const pageMessage = document.getElementById("pageMessage");
+    let rows = [];
 
-    const bookingsState = document.getElementById("bookingsState");
-    const bookingsTable = document.getElementById("bookingsTable");
-    const bookingsBody = document.getElementById("bookingsBody");
-
-    const examStatusLabel = {
-      EXAM_BOOKED: "İmtahan rezervasiyası",
-      EXAM_ATTENDED: "İmtahanda iştirak etdi",
-      EXAM_NO_SHOW: "İmtahana gəlmədi",
-      EXAM_FAILED: "İmtahandan keçmədi",
-      EXAM_PASSED: "İmtahandan keçdi",
+    const statusLabel = {
+      NEW_APPLICATION: "Yeni müraciət", EXAM_BOOKED: "İmtahan rezervasiyası", EXAM_PASSED: "İmtahandan keçdi",
+      EXAM_FAILED: "İmtahandan kəsilib", INTERVIEW_INVITED: "Müsahibəyə dəvət", INTERVIEW_BOOKED: "Müsahibə rezervasiyası",
+      INTERVIEW_PASSED: "Müsahibədən keçdi", INTERVIEW_FAILED: "Müsahibədən kəsilib", ENROLLED: "Təlimdədir",
+      DECLINED: "İmtina edildi", ELIGIBLE: "Uyğundur",
     };
 
-    function isAdminUser(user) {
-      return user?.app_metadata?.role === "admin";
-    }
-
-    // Fail closed: only a claim that is exactly one of these known values
-    // is trusted. Missing/null/empty/mistyped staff_scope now resolves to
-    // "no_access" instead of silently becoming "all" — the previous
-    // fallback here gave a blank claim full super-admin access.
+    function isAdminUser(user) { return user?.app_metadata?.role === "admin"; }
     const VALID_STAFF_SCOPES = ["dma", "all"];
     function getStaffScope(user) {
       const scope = user?.app_metadata?.staff_scope;
       return VALID_STAFF_SCOPES.includes(scope) ? scope : "no_access";
     }
-
-
     function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
     }
-
     function renderAccessGate(title, message) {
-      bootScreen.innerHTML = `
-        <div style="width:min(100%,460px);background:#fff;border:1px solid #dfe7ea;border-radius:20px;padding:30px;text-align:center;box-shadow:0 18px 45px rgba(20,46,55,.08);">
-          <div style="margin-bottom:10px;"><img src="/logo-instudy.png" alt="Instudy" style="height:44px;display:block;margin:0 auto 10px;"></div>
-          <h2 style="font-size:20px;margin-bottom:10px;">${escapeHtml(title)}</h2>
-          <p style="color:#6d7b83;line-height:1.6;margin-bottom:20px;">${escapeHtml(message)}</p>
-          <a href="/admin/login/index.html" style="display:inline-block;background:#FF6800;color:#fff;text-decoration:none;padding:13px 18px;border-radius:12px;font-weight:800;">Giriş səhifəsinə keç</a>
-        </div>
-      `;
+      bootScreen.innerHTML = `<div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(message)}</p></div>`;
+      bootScreen.style.display = "grid";
+      appShell.classList.remove("ready");
     }
 
-    function formatDateTime(value) {
-      return new Intl.DateTimeFormat("az-AZ", {
-        day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"
-      }).format(new Date(value));
+    function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+    function dayKey(iso) {
+      const d = new Date(iso); const p = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
+    function dayLabel(key) { const [y, m, d] = key.split("-"); return `${d}.${m}.${y}`; }
+    function timeLabel(iso) { const d = new Date(iso); const p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; }
+    function toLocalInput(iso) {
+      if (!iso) return "";
+      const d = new Date(iso); const p = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
     }
 
-    async function loadPrograms() {
-      const { data, error } = await client.from("dma_programs").select("id, name").order("name");
-      if (error) {
-        console.error("Programs load error:", error);
-        return;
-      }
-      for (const program of data || []) {
-        const option = document.createElement("option");
-        option.value = String(program.id);
-        option.textContent = program.name;
-        programSelect.appendChild(option);
-      }
+    function showMessage(type, text) {
+      pageMessage.className = "message " + type;
+      pageMessage.textContent = text;
     }
 
-    async function loadSessions() {
-      const { data: sessions, error } = await client
-        .from("dma_exam_sessions")
-        .select("id, starts_at, capacity, dma_programs!dma_exam_sessions_program_id_fkey (id, name)")
-        .order("starts_at", { ascending: true });
-
-      if (error) {
-        console.error("Sessions load error:", error);
-        stateMessage.className = "error";
-        stateMessage.textContent = "Sessiyalar yüklənmədi: " + error.message;
-        return;
-      }
-
-      const { data: bookings, error: bookingsError } = await client
-        .from("dma_exam_bookings")
-        .select("exam_session_id")
-        .eq("status", "BOOKED");
-
-      if (bookingsError) {
-        console.error("Bookings load error:", bookingsError);
-      }
-
-      const bookedCounts = new Map();
-      for (const booking of bookings || []) {
-        bookedCounts.set(
-          booking.exam_session_id,
-          (bookedCounts.get(booking.exam_session_id) || 0) + 1
-        );
-      }
-
-      tbody.innerHTML = (sessions || []).map(session => {
-        const booked = bookedCounts.get(session.id) || 0;
-        const available = session.capacity - booked;
-        return `
-          <tr>
-            <td>${escapeHtml(session.programs?.name || "—")}</td>
-            <td>${formatDateTime(session.starts_at)}</td>
-            <td class="seats ${available <= 0 ? "full" : ""}">${booked}/${session.capacity}${available <= 0 ? " (dolu)" : ""}</td>
-            <td><button type="button" class="delete-btn" data-session-id="${session.id}">Sil</button></td>
-          </tr>
-        `;
-      }).join("");
-
-      stateMessage.hidden = true;
-      table.hidden = false;
-
-      if (!(sessions || []).length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty">Hələ heç bir sessiya yaradılmayıb.</td></tr>`;
-      }
-    }
-
-    const sessionsMessage = document.getElementById("sessionsMessage");
-
-    function showSessionsMessage(type, text) {
-      sessionsMessage.className = "message " + type;
-      sessionsMessage.textContent = text;
-    }
-
-    tbody.addEventListener("click", async event => {
-      const button = event.target.closest(".delete-btn");
-      if (!button) return;
-
-      if (!window.confirm("Bu sessiyanı silmək istədiyinizə əminsiniz?")) return;
-
-      const sessionId = Number(button.dataset.sessionId);
-      button.disabled = true;
-
-      const { error } = await client.from("dma_exam_sessions").delete().eq("id", sessionId);
-
-      if (error) {
-        button.disabled = false;
-        console.error("Session delete error:", error);
-        const isFkViolation = error.code === "23503" || /foreign key/i.test(error.message || "");
-        showSessionsMessage(
-          "error",
-          isFkViolation
-            ? "Bu sessiya silinə bilmədi, çünki onunla bağlı rezervasiya var. Əvvəlcə həmin rezervasiyanı ləğv edin."
-            : "Sessiya silinmədi: " + error.message
-        );
-        return;
-      }
-
-      showSessionsMessage("success", "Sessiya silindi.");
-      await loadSessions();
-    });
-
-    async function loadBookings() {
-      const { data: bookings, error } = await client
-        .from("dma_exam_bookings")
+    async function loadRows() {
+      const { data, error } = await client
+        .from("dma_applications")
         .select(`
-          id,
-          exam_sessions!exam_bookings_exam_session_id_fkey ( starts_at ),
-          dma_applications!dma_exam_bookings_application_id_fkey (
-            id,
-            current_status,
-            exam_score,
-            dma_candidates!dma_applications_candidate_id_fkey ( full_name, fin ),
-            dma_programs!dma_applications_program_id_fkey ( name )
-          )
+          id, current_status, exam_scheduled_at, interview_scheduled_at, exam_score,
+          interview_attended, interview_result,
+          candidates:dma_candidates!dma_applications_candidate_id_fkey ( full_name, fin, whatsapp_phone ),
+          programs:dma_programs!dma_applications_program_id_fkey ( id, name )
         `)
-        .eq("status", "BOOKED")
-        .order("id", { ascending: false });
+        .not(CONFIG.dateField, "is", null)
+        .order(CONFIG.dateField, { ascending: true });
+      if (error) throw error;
+      rows = data || [];
+    }
 
-      if (error) {
-        console.error("Bookings load error:", error);
-        bookingsState.className = "error";
-        bookingsState.textContent = "Rezervasiyalar yüklənmədi: " + error.message;
-        return;
-      }
+    function refreshProgramFilter() {
+      const current = programFilter.value;
+      const seen = new Map();
+      rows.forEach(r => { if (r.programs) seen.set(r.programs.id, r.programs.name); });
+      programFilter.innerHTML = `<option value="">Bütün proqramlar</option>` +
+        [...seen.entries()].map(([id, name]) => `<option value="${id}">${escapeHtml(name)}</option>`).join("");
+      programFilter.value = current;
+    }
 
-      bookingsBody.innerHTML = (bookings || []).map(booking => {
-        const app = booking.applications || {};
-        const c = app.candidates || {};
-        const p = app.programs || {};
-
-        return `
-          <tr>
-            <td><strong>${escapeHtml(c.full_name || "—")}</strong></td>
-            <td>${escapeHtml(c.fin || "—")}</td>
-            <td>${escapeHtml(p.name || "—")}</td>
-            <td>${booking.exam_sessions?.starts_at ? formatDateTime(booking.exam_sessions.starts_at) : "—"}</td>
-            <td>
-              <input
-                type="number" class="score-input" data-app-id="${app.id}"
-                value="${app.exam_score ?? ""}" data-previous-value="${app.exam_score ?? ""}"
-                placeholder="—"
-              >
-            </td>
-            <td>
-              <select class="status-select" data-app-id="${app.id}" data-previous-value="${app.current_status}">
-                ${Object.entries(examStatusLabel).map(([value, label]) => `
-                  <option value="${value}" ${value === app.current_status ? "selected" : ""}>${escapeHtml(label)}</option>
-                `).join("")}
-              </select>
-            </td>
-          </tr>
-        `;
-      }).join("");
-
-      bookingsState.hidden = true;
-      bookingsTable.hidden = false;
-
-      if (!(bookings || []).length) {
-        bookingsBody.innerHTML = `<tr><td colspan="6" class="empty">Hələ heç bir rezervasiya yoxdur.</td></tr>`;
+    function passesRange(row) {
+      const t = new Date(row[CONFIG.dateField]).getTime();
+      const today = startOfToday();
+      switch (rangeFilter.value) {
+        case "upcoming": return t >= today;
+        case "week": return t >= today && t < today + 7 * 86400000;
+        case "past": return t < today;
+        default: return true;
       }
     }
 
-    const bookingsMessage = document.getElementById("bookingsMessage");
-
-    function showBookingsMessage(type, text) {
-      bookingsMessage.className = "message " + type;
-      bookingsMessage.textContent = text;
+    function rowHtml(r) {
+      const c = r.candidates || {};
+      const p = r.programs || {};
+      return `
+        <div class="slot-row">
+          <div class="slot-time">${timeLabel(r[CONFIG.dateField])}</div>
+          <div>
+            <a class="slot-name" href="candidates/index.html?id=${r.id}">${escapeHtml(c.full_name || "—")}</a>
+            <div class="slot-sub">${escapeHtml(c.fin || "")} · ${escapeHtml(c.whatsapp_phone || "")} · ${escapeHtml(p.name || "")}</div>
+          </div>
+          <div class="slot-controls">${CONFIG.controls(r)}</div>
+        </div>`;
     }
 
-    bookingsBody.addEventListener("change", async event => {
-      const statusEl = event.target.closest(".status-select");
-      const scoreEl = event.target.closest(".score-input");
-
-      if (statusEl) {
-        const applicationId = Number(statusEl.dataset.appId);
-        const previousValue = statusEl.dataset.previousValue;
-        statusEl.disabled = true;
-
-        const { error } = await client
-          .from("dma_applications")
-          .update({ current_status: statusEl.value })
-          .eq("id", applicationId);
-
-        statusEl.disabled = false;
-
-        if (error) {
-          console.error("Status update error:", error);
-          showBookingsMessage("error", "Status yenilənmədi: " + error.message);
-          statusEl.value = previousValue;
-          return;
-        }
-
-        statusEl.dataset.previousValue = statusEl.value;
-        showBookingsMessage("success", "Status yeniləndi: " + (examStatusLabel[statusEl.value] || statusEl.value));
+    function render() {
+      const pid = programFilter.value;
+      const filtered = rows.filter(r => passesRange(r) && (!pid || String(r.programs?.id) === pid));
+      if (!filtered.length) {
+        listEl.innerHTML = `<div class="empty">Bu filtrdə qeyd yoxdur</div>`;
         return;
       }
-
-      if (scoreEl) {
-        const applicationId = Number(scoreEl.dataset.appId);
-        const previousValue = scoreEl.dataset.previousValue;
-        const newValue = scoreEl.value === "" ? null : Number(scoreEl.value);
-        scoreEl.disabled = true;
-
-        const { error } = await client
-          .from("dma_applications")
-          .update({ exam_score: newValue })
-          .eq("id", applicationId);
-
-        if (error) {
-          scoreEl.disabled = false;
-          console.error("Score update error:", error);
-          showBookingsMessage("error", "Bal yenilənmədi: " + error.message);
-          scoreEl.value = previousValue;
-          return;
-        }
-
-        // Score changes can auto-route current_status (see the DB trigger) —
-        // reload so the status column always shows what's actually stored,
-        // instead of leaving a stale value on screen after a silent save.
-        const autoRouted = newValue !== null;
-        await loadBookings();
-
-        showBookingsMessage(
-          "success",
-          autoRouted
-            ? `Bal saxlanıldı (${newValue}). Status avtomatik yeniləndi.`
-            : "Bal saxlanıldı."
-        );
-      }
-    });
-
-    form.addEventListener("submit", async event => {
-      event.preventDefault();
-
-      submitButton.disabled = true;
-      formMessage.className = "message";
-      formMessage.textContent = "";
-
-      const programId = Number(programSelect.value);
-      const date = document.getElementById("dateInput").value;
-      const time = document.getElementById("timeInput").value;
-      const capacity = Number(document.getElementById("capacityInput").value);
-      const startsAt = new Date(`${date}T${time}`).toISOString();
-
-      const { error } = await client.from("dma_exam_sessions").insert({
-        program_id: programId,
-        starts_at: startsAt,
-        capacity,
+      const groups = new Map();
+      filtered.forEach(r => {
+        const k = dayKey(r[CONFIG.dateField]);
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(r);
       });
+      listEl.innerHTML = [...groups.entries()].map(([k, list]) => `
+        <section class="panel day-panel">
+          <div class="day-head"><strong>${dayLabel(k)}</strong><span>${list.length} nəfər</span></div>
+          ${list.map(rowHtml).join("")}
+        </section>`).join("");
+    }
 
-      submitButton.disabled = false;
+    async function loadAndRender() {
+      await loadRows();
+      refreshProgramFilter();
+      render();
+    }
 
+    listEl.addEventListener("change", async event => {
+      const el = event.target;
+      const id = Number(el.dataset.id);
+      const field = el.dataset.field;
+      const row = rows.find(r => r.id === id);
+      if (!row || !field) return;
+      const payload = CONFIG.buildPayload(row, field, el);
+      if (!payload) return;
+      el.disabled = true;
+      const { error } = await client.from("dma_applications").update(payload).eq("id", id);
       if (error) {
-        console.error("Session create error:", error);
-        formMessage.className = "message error";
-        formMessage.textContent = "Sessiya yaradıla bilmədi: " + error.message;
+        console.error("Schedule update error:", error);
+        showMessage("error", "Yenilənmədi: " + error.message);
+        await loadAndRender();
         return;
       }
-
-      formMessage.className = "message success";
-      formMessage.textContent = "Sessiya yaradıldı.";
-      form.reset();
-      document.getElementById("capacityInput").value = 20;
-      await loadSessions();
+      showMessage("success", "Saxlanıldı.");
+      await loadAndRender();
     });
+
+    rangeFilter.addEventListener("change", render);
+    programFilter.addEventListener("change", render);
 
     async function init() {
       try {
         const { data: sessionData, error: sessionError } = await client.auth.getSession();
         if (sessionError) throw sessionError;
-
         if (!sessionData.session) {
           renderAccessGate("Admin girişi tələb olunur", "Bu səhifəni görmək üçün əvvəlcə sistemə daxil olun.");
           return;
         }
-
         const { data: userData, error: userError } = await client.auth.getUser();
         if (userError) throw userError;
-
         const user = userData.user;
-
         if (!isAdminUser(user)) {
           await client.auth.signOut();
           renderAccessGate("Giriş qadağandır", "Bu hesabın admin panelinə giriş icazəsi yoxdur.");
           return;
         }
-
         if (!["dma", "all"].includes(getStaffScope(user))) {
           renderAccessGate("Giriş qadağandır", "Bu hesabın bu panelə giriş icazəsi yoxdur.");
           return;
         }
-
         document.getElementById("userEmail").textContent = user.email || "";
         bootScreen.style.display = "none";
         appShell.classList.add("ready");
-
-        await Promise.all([loadPrograms(), loadSessions(), loadBookings()]);
-
+        stateMessage.style.display = "none";
+        await loadAndRender();
       } catch (error) {
-        console.error("Admin exams init error:", error);
+        console.error("Schedule init error:", error);
         bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
       }
     }
