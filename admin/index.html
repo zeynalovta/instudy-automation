@@ -645,7 +645,7 @@
             </td>
             <td>
               <select class="status-select stage-select ${badgeClass(item.current_status)}" data-id="${item.id}" data-previous-value="${item.current_status}">
-                <option value="" disabled ${!stageBucket(item) ? "selected" : ""}>Prosesdədir</option>
+                <option value="" disabled ${!stageBucket(item) ? "selected" : ""}>${item.current_status === "NEW_APPLICATION" ? "Yeni müraciət" : "Prosesdədir"}</option>
                 ${Object.entries(stageLabel).map(([value, label]) => `
                   <option value="${value}" ${stageBucket(item) === value ? "selected" : ""}
                     ${value === "ENROLLED" && dmaLocked ? `disabled title="${escapeHtml(dmaLockTitle)}"` : ""}>${escapeHtml(label)}</option>
