@@ -102,7 +102,12 @@
     .details .info-grid { margin-top:8px; }
     .link-btn { background:none; border:0; color:#ff6800; font-weight:700; cursor:pointer; padding:2px 0; }
     .note-view { font-size:13px; margin-bottom:2px; white-space:pre-wrap; }
-  </style>
+      .contact-stats { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; margin-bottom:8px; }
+    .contact-item { border-left:3px solid #ffc9a3; padding:6px 10px; margin:6px 0; }
+    .contact-meta { font-size:13px; }
+    .contact-note { font-size:13px; margin-top:2px; }
+    .contact-by { font-size:11px; color:var(--muted); margin-top:2px; }
+</style>
 </head>
 <body>
   <div id="bootScreen" style="
@@ -377,6 +382,52 @@
       return null;
     }
 
+    let contactLogs = [];
+    const contactChannelLabel = { PHONE: "📞 Telefon", WHATSAPP: "💬 WhatsApp", EMAIL: "✉️ Email", OTHER: "• Digər" };
+    const contactOutcomeLabel = { TALKED: "Danışıldı", NO_ANSWER: "Cavab vermədi", PHONE_OFF: "Telefon bağlıdır", FOLLOW_UP: "Sonra əlaqə saxlanılsın", NOT_INTERESTED: "Maraqlanmır", OTHER: "Digər" };
+
+    function contactSectionHtml() {
+      const talked = contactLogs.filter(l => l.outcome === "TALKED").length;
+      const noAnswer = contactLogs.filter(l => l.outcome === "NO_ANSWER").length;
+      const last = contactLogs[0];
+      const items = contactLogs.map(l => `
+        <div class="contact-item">
+          <div class="contact-meta">${formatDate(l.contacted_at, true)} · ${escapeHtml(contactChannelLabel[l.channel] || l.channel)} — <strong>${escapeHtml(contactOutcomeLabel[l.outcome] || l.outcome)}</strong></div>
+          ${l.note ? `<div class="contact-note">“${escapeHtml(l.note)}”</div>` : ""}
+          <div class="contact-by">${escapeHtml(l.staff_email || "")}</div>
+        </div>`).join("") || `<div style="color:var(--muted)">Hələ əlaqə qeydi yoxdur</div>`;
+      return `
+        <div class="contact-stats">
+          <span>Əlaqə cəhdi: <strong>${contactLogs.length}</strong></span>
+          <span>Danışılıb: <strong>${talked}</strong></span>
+          <span>Cavabsız: <strong>${noAnswer}</strong></span>
+          <span>Son əlaqə: <strong>${last ? formatDate(last.contacted_at, true) : "—"}</strong></span>
+        </div>
+        <button type="button" id="contactToggleButton" class="link-btn">+ Əlaqə əlavə et</button>
+        <div id="contactForm" style="display:none;margin-top:8px;">
+          <div class="row3">
+            <div class="field">
+              <label for="contactAt">Tarix və saat</label>
+              <input type="datetime-local" id="contactAt">
+            </div>
+            <div class="field">
+              <label for="contactChannel">Kanal</label>
+              <select id="contactChannel">${Object.entries(contactChannelLabel).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+            </div>
+            <div class="field">
+              <label for="contactOutcome">Nəticə</label>
+              <select id="contactOutcome">${Object.entries(contactOutcomeLabel).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="contactNote">Qısa qeyd</label>
+            <input id="contactNote" placeholder="Qısa qeyd...">
+          </div>
+          <button type="button" id="contactSaveButton">Əlaqəni saxla</button>
+        </div>
+        <div class="contact-list">${items}</div>`;
+    }
+
     function renderProfile(app) {
       const c = app.candidates || {};
       const p = app.programs || {};
@@ -461,6 +512,11 @@
               ${tlStep("Təlim", groupName || (enrolled ? "Təlimdədir" : "Gözləyir"), enrolled ? "done" : "pending")}
             </div>
           </div>
+        </section>
+
+        <section class="panel full-width">
+          <div class="panel-head">Əlaqə tarixçəsi</div>
+          <div class="panel-body">${contactSectionHtml()}</div>
         </section>
 
         <div class="cols3">
@@ -622,6 +678,42 @@
         </div>
       `;
 
+      document.getElementById("contactToggleButton").addEventListener("click", () => {
+        const form = document.getElementById("contactForm");
+        const opening = form.style.display === "none";
+        form.style.display = opening ? "block" : "none";
+        if (opening && !document.getElementById("contactAt").value) {
+          document.getElementById("contactAt").value = toDateTimeLocalValue(new Date().toISOString());
+        }
+      });
+
+      document.getElementById("contactSaveButton").addEventListener("click", async () => {
+        const saveButton = document.getElementById("contactSaveButton");
+        const at = document.getElementById("contactAt").value;
+        if (!at) {
+          messageEl.className = "message error";
+          messageEl.textContent = "Əlaqə tarixini daxil edin.";
+          return;
+        }
+        saveButton.disabled = true;
+        const { error } = await client.from("dma_contact_logs").insert({
+          application_id: app.id,
+          contacted_at: new Date(at).toISOString(),
+          channel: document.getElementById("contactChannel").value,
+          outcome: document.getElementById("contactOutcome").value,
+          note: document.getElementById("contactNote").value.trim() || null,
+        });
+        saveButton.disabled = false;
+        if (error) {
+          messageEl.className = "message error";
+          messageEl.textContent = "Əlaqə saxlanılmadı: " + error.message;
+          return;
+        }
+        messageEl.className = "message success";
+        messageEl.textContent = "Əlaqə qeydi əlavə olundu.";
+        await loadProfile(app.id);
+      });
+
       const messageEl = document.getElementById("actionMessage");
       document.getElementById("editInterviewNoteButton").addEventListener("click", () => {
         document.getElementById("interviewNoteView").style.display = "none";
@@ -746,6 +838,14 @@
         stateMessage.textContent = "Namizəd tapılmadı.";
         return;
       }
+
+      const { data: logsData, error: logsError } = await client
+        .from("dma_contact_logs")
+        .select("id, contacted_at, channel, outcome, note, staff_email")
+        .eq("application_id", applicationId)
+        .order("contacted_at", { ascending: false });
+      if (logsError) console.error("Contact logs error:", logsError);
+      contactLogs = logsError ? [] : (logsData || []);
 
       const { data: groupsData } = await client.from("dma_training_groups").select("id, program_id, name");
       profileGroups = groupsData || [];
