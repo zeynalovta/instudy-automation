@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <base href="/admin/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INSTUDY Admin — Sistem</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:#FF6800; --ink:#17232b; --muted:#6d7b83;
+      --line:#dfe7ea; --bg:#f4f7f9; --white:#fff;
+    }
+    body {
+      min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg); color:var(--ink);
+    }
+    #bootScreen {
+      min-height:100vh; display:grid; place-items:center; color:var(--muted); padding:24px;
+    }
+    .shell { display:none; grid-template-columns:240px minmax(0,1fr); min-height:100vh; }
+    .shell.ready { display:grid; }
+    aside { background:#ffe9d6; color:#3a2418; padding:26px 18px; }
+    .brand { font-size:28px; font-weight:800; padding:0 10px 28px; }
+    .brand span { color:#FF6800; }
+    nav a {
+      display:block; color:rgba(58,36,24,.62); text-decoration:none;
+      padding:12px 14px; border-radius:11px; margin-bottom:6px; font-weight:650; font-size:14px;
+    }
+    nav a.active { background:#ff6800; color:#fff; }
+    main { min-width:0; }
+    .topbar {
+      min-height:76px; background:#fff; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; padding:14px 28px; gap:20px;
+    }
+    .topbar h1 { font-size:21px; }
+    .user-area { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .logout {
+      border:1px solid var(--line); background:#fff; padding:9px 12px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .content { padding:28px; display:grid; gap:20px; grid-template-columns: 340px minmax(0,1fr); align-items:start; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
+    .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); font-weight:800; }
+    .panel-body { padding:20px; }
+    .field { margin-bottom:16px; }
+    label { display:block; font-size:13px; font-weight:700; margin-bottom:7px; }
+    input, select {
+      width:100%; border:1px solid #d5dfe3; border-radius:11px; padding:11px 12px;
+      font:inherit; background:#fff;
+    }
+    button {
+      border:0; border-radius:11px; padding:13px; background:var(--green); color:#fff;
+      font-weight:800; cursor:pointer; width:100%;
+    }
+    button:disabled { opacity:.6; cursor:wait; }
+    .message { margin-bottom:14px; padding:11px 13px; border-radius:11px; font-size:13px; display:none; }
+    .message.error { display:block; color:#9f3131; background:#fff1f1; border:1px solid #ffd7d7; }
+    .message.success { display:block; color:#176b58; background:#eefaf6; border:1px solid #ccece3; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:14px 16px; border-bottom:1px solid #edf1f3; font-size:13px; }
+    th { color:#6d7b83; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#fbfcfd; }
+    .badge {
+      display:inline-flex; padding:6px 9px; border-radius:999px;
+      font-size:11px; font-weight:800; white-space:nowrap;
+    }
+    .green { background:#e8f7f3; color:#176b58; }
+    .gray { background:#f0f3f5; color:#607078; }
+    .loading,.empty,.error { padding:36px 20px; text-align:center; color:var(--muted); }
+    .full-width { grid-column: 1 / -1; }
+    .delete-btn {
+      width:auto; background:#fff; color:#a33d3d; border:1px solid #ffd7d7;
+      border-radius:9px; padding:7px 12px; font-size:12px; font-weight:700;
+    }
+    .delete-btn:disabled { opacity:.6; cursor:wait; }
+    .date-input {
+      width:auto; border:1px solid #d5dfe3; border-radius:9px; padding:7px 9px; font-size:12.5px;
+    }
+    .date-input:disabled { opacity:.6; cursor:wait; }
+    @media (max-width:900px) {
+      .shell.ready { grid-template-columns:1fr; }
+      aside { display:none; }
+      .content { grid-template-columns:1fr; padding:18px; }
+    }
+    .content { grid-template-columns:minmax(0,1fr); gap:12px; padding:20px 24px; }
+    .content > * { min-width:0; }
+    .panel { margin:0; }
+    .panel-head { padding:10px 16px; font-size:14px; }
+    .panel-body { padding:12px 16px; }
+    .logout { width:auto; padding:9px 12px; color:var(--ink); background:#fff; }
+    .btn-primary, .btn-ghost, .btn-sm { width:auto; padding:6px 12px; border-radius:8px; font-size:13px; font-weight:700; }
+    .btn-primary { background:var(--green); color:#fff; border:0; }
+    .btn-ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+    .grid-form { display:flex; flex-wrap:wrap; gap:10px 12px; align-items:flex-end; }
+    .gf-field { display:flex; flex-direction:column; gap:3px; }
+    .gf-field > label { font-size:11px; color:var(--muted); font-weight:700; }
+    .gf-field select, .gf-field input[type=text], .gf-field input:not([type]) { height:30px; padding:0 8px; border:1px solid var(--line); border-radius:7px; font-size:13px; background:#fff; width:200px; }
+    .gf-actions { display:flex; gap:6px; align-items:flex-end; margin-left:auto; }
+    .message { margin:6px 0 0; font-size:13px; }
+    table.grid { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:12px; }
+    table.grid thead th { text-align:left; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 10px; border-bottom:1px solid var(--line); background:#fafbfc; }
+    table.grid td { padding:4px 10px; border-bottom:1px solid #eef2f4; font-size:13px; vertical-align:middle; height:52px; }
+    table.grid tbody tr.data-row:hover td { background:#fff9f5; }
+    .c-prog { width:170px; color:var(--muted); font-size:12px; }
+    .c-date { width:110px; }
+    .c-slot { width:120px; }
+    .c-num { width:90px; }
+    .c-stat { width:130px; }
+    .c-act { width:44px; text-align:center; position:relative; }
+    .gname, .cnt { color:var(--ink); font-weight:700; cursor:pointer; }
+    .gname:hover, .cnt:hover { color:var(--green); }
+    .cnt { font-weight:600; }
+    .more { background:#fff; border:1px solid var(--line); border-radius:6px; width:28px; height:24px; cursor:pointer; line-height:1; color:var(--ink); padding:0; }
+    .menu { position:fixed; z-index:1000; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; min-width:170px; display:flex; flex-direction:column; text-align:left; }
+    .menu[hidden] { display:none; }
+    .menu button { padding:7px 10px; font-size:13px; text-align:left; background:none; border:0; color:var(--ink); cursor:pointer; width:100%; border-radius:0; font-weight:500; }
+    .menu button:hover { background:#fff7f0; }
+    .menu button.danger { color:#b42318; }
+    .edit-row td, .sub-row td { background:#fbfcfd; height:auto; padding:10px 12px; }
+    .members { font-size:13px; display:flex; flex-wrap:wrap; gap:6px 14px; }
+    .members a { color:var(--ink); text-decoration:none; font-weight:600; }
+    .members a:hover { color:var(--green); }
+    .members span { color:var(--muted); font-size:12px; }
+    .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; }
+    .badge.green { background:#e8f6ee; color:#1d7a4a; }
+    .badge.blue { background:#eaf2ff; color:#2459b3; }
+    .badge.gray { background:#f1f3f5; color:#6d7b83; }
+    .badge.red { background:#fdecec; color:#b42318; }
+    .empty { padding:24px; color:var(--muted); text-align:center; }
+    .toolbar-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  
+    .tabs { display:flex; gap:6px; margin-bottom:12px; }
+    .tabs button { width:auto; padding:7px 14px; background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:8px; font-size:13px; }
+    .tabs button.on { background:var(--green); color:#fff; border-color:var(--green); }
+    td .btn-sm { margin-right:4px; }
+    table.grid td input, table.grid td select { height:30px; padding:0 8px; border:1px solid var(--line); border-radius:7px; font-size:13px; width:100%; }
+    .hint { color:var(--muted); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+  <div id="bootScreen" style="min-height:100vh; display:grid; place-items:center; background:#f4f7f9; color:#6d7b83; padding:24px;">
+    <div>Admin panel yoxlanılır...</div>
+  </div>
+  <div id="appShell" class="shell">
+    <aside>
+      <div class="brand"><img src="/logo-instudy.png" alt="Instudy" style="height:32px;display:block;"></div>
+      <nav>
+        <a href="/admin/index.html">Namizədlər</a>
+        <a href="/admin/exams/index.html">İmtahanlar</a>
+        <a href="/admin/interviews/index.html">Müsahibələr</a>
+        <a href="/admin/groups/index.html">DMA qrupları</a>
+        <a href="/admin/attendance/index.html">Davamiyyət</a>
+        <a href="/admin/graduates/index.html">Məzunlar</a>
+        <a class="active" href="/admin/system/index.html">Sistem</a>
+      </nav>
+    </aside>
+    <main>
+      <header class="topbar">
+        <h1>Sistem</h1>
+        <div class="user-area"><span id="userEmail"></span><button id="logoutButton" class="logout">Çıxış</button></div>
+      </header>
+      <section class="content">
+        <div class="tabs" id="tabs">
+          <button data-tab="programs" class="on">Təlimlər</button>
+          <button data-tab="instructors">Müəllimlər</button>
+          <button data-tab="users">İstifadəçilər</button>
+        </div>
+        <div id="msg" class="message"></div>
+
+        <section class="panel" data-pane="programs">
+          <div class="panel-head">Təlimlər (proqramlar)</div>
+          <div class="panel-body">
+            <div class="grid-form">
+              <div class="gf-field"><label>Ad</label><input type="text" id="pName" placeholder="Backend Developer"></div>
+              <div class="gf-field"><label>Müddət (ay)</label><input type="text" id="pDur" placeholder="3"></div>
+              <div class="gf-actions"><button class="btn-primary" id="pAdd">Təlim əlavə et</button></div>
+            </div>
+          </div>
+          <table class="grid"><thead><tr><th>Ad</th><th>Müddət (ay)</th><th>Status</th><th></th></tr></thead><tbody id="pBody"></tbody></table>
+        </section>
+
+        <section class="panel" data-pane="instructors" hidden>
+          <div class="panel-head">Müəllimlər</div>
+          <div class="panel-body">
+            <div class="grid-form">
+              <div class="gf-field"><label>Ad Soyad</label><input type="text" id="iName"></div>
+              <div class="gf-field"><label>Telefon</label><input type="text" id="iPhone"></div>
+              <div class="gf-actions"><button class="btn-primary" id="iAdd">Müəllim əlavə et</button></div>
+            </div>
+          </div>
+          <table class="grid"><thead><tr><th>Ad Soyad</th><th>Telefon</th><th>Status</th><th></th></tr></thead><tbody id="iBody"></tbody></table>
+        </section>
+
+        <section class="panel" data-pane="users" hidden>
+          <div class="panel-head">İstifadəçilər</div>
+          <div class="panel-body">
+            <div class="grid-form">
+              <div class="gf-field"><label>E-poçt</label><input type="text" id="uEmail"></div>
+              <div class="gf-field"><label>Parol (min 8)</label><input type="text" id="uPass" autocomplete="off"></div>
+              <div class="gf-field"><label>İcazə</label><select id="uScope"><option value="dma">dma</option><option value="all">all</option></select></div>
+              <div class="gf-actions"><button class="btn-primary" id="uAdd">İstifadəçi əlavə et</button></div>
+            </div>
+            <div class="hint">Yeni istifadəçi admin paneli üçün yaradılır. "dma" yalnız DMA bölməsinə, "all" hamısına giriş verir.</div>
+          </div>
+          <table class="grid"><thead><tr><th>E-poçt</th><th>İcazə</th><th>Son giriş</th><th>Status</th><th></th></tr></thead><tbody id="uBody"></tbody></table>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script>
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = id => document.getElementById(id);
+    const msg = $("msg");
+    let programs = [], instructors = [], users = [], me = null;
+
+    const esc = v => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    function say(type, text) { msg.className = "message " + type; msg.textContent = text; }
+    function slugify(s) {
+      const map = { "ə":"e","ı":"i","ö":"o","ü":"u","ç":"c","ş":"s","ğ":"g" };
+      return s.toLowerCase().replace(/[əıöüçşğ]/g, c => map[c]).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+    function gate(title, text) { $("bootScreen").innerHTML = `<div><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`; }
+
+    async function api(method, body) {
+      const { data } = await client.auth.getSession();
+      const r = await fetch("/api/admin/users", {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + data.session.access_token },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+      return j;
+    }
+
+    const badge = on => `<span class="badge ${on ? "green" : "gray"}">${on ? "Aktiv" : "Deaktiv"}</span>`;
+
+    // ---- Təlimlər ----
+    async function loadPrograms() {
+      const { data, error } = await client.from("dma_programs").select("id, name, slug, duration, is_active").order("name");
+      if (error) return say("error", "Təlimlər yüklənmədi: " + error.message);
+      programs = data || [];
+      $("pBody").innerHTML = programs.map(p => `<tr data-id="${p.id}">
+        <td><input data-f="name" value="${esc(p.name)}"></td>
+        <td style="width:140px"><input data-f="duration" value="${p.duration ?? ""}"></td>
+        <td>${badge(p.is_active)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-primary btn-sm" data-a="p-save">Yadda saxla</button>
+          <button class="btn-ghost btn-sm" data-a="p-toggle">${p.is_active ? "Deaktiv et" : "Aktiv et"}</button>
+        </td></tr>`).join("") || `<tr><td colspan="4" class="empty">Təlim yoxdur.</td></tr>`;
+    }
+    $("pAdd").onclick = async () => {
+      const name = $("pName").value.trim(); const dur = $("pDur").value.trim().replace(",", ".");
+      if (!name) return say("error", "Təlimin adı mütləqdir.");
+      if (dur && isNaN(Number(dur))) return say("error", "Müddət rəqəm olmalıdır.");
+      const { error } = await client.from("dma_programs").insert({ name, slug: slugify(name), duration: dur ? Number(dur) : null, is_active: true });
+      if (error) return say("error", "Əlavə olunmadı: " + error.message);
+      $("pName").value = ""; $("pDur").value = ""; say("success", "Təlim əlavə olundu."); loadPrograms();
+    };
+
+    // ---- Müəllimlər ----
+    async function loadInstructors() {
+      const { data, error } = await client.from("dma_instructors").select("id, full_name, phone, is_active").order("full_name");
+      if (error) return say("error", "Müəllimlər yüklənmədi: " + error.message);
+      instructors = data || [];
+      $("iBody").innerHTML = instructors.map(i => `<tr data-id="${i.id}">
+        <td><input data-f="full_name" value="${esc(i.full_name)}"></td>
+        <td><input data-f="phone" value="${esc(i.phone || "")}"></td>
+        <td>${badge(i.is_active)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-primary btn-sm" data-a="i-save">Yadda saxla</button>
+          <button class="btn-ghost btn-sm" data-a="i-toggle">${i.is_active ? "Deaktiv et" : "Aktiv et"}</button>
+        </td></tr>`).join("") || `<tr><td colspan="4" class="empty">Müəllim yoxdur.</td></tr>`;
+    }
+    $("iAdd").onclick = async () => {
+      const full_name = $("iName").value.trim(); const phone = $("iPhone").value.trim() || null;
+      if (!full_name) return say("error", "Ad mütləqdir.");
+      const { error } = await client.from("dma_instructors").insert({ full_name, phone });
+      if (error) return say("error", "Əlavə olunmadı: " + error.message);
+      $("iName").value = ""; $("iPhone").value = ""; say("success", "Müəllim əlavə olundu."); loadInstructors();
+    };
+
+    // ---- İstifadəçilər ----
+    async function loadUsers() {
+      try { users = (await api("GET")).users; } catch (e) { return say("error", "İstifadəçilər yüklənmədi: " + e.message); }
+      $("uBody").innerHTML = users.map(u => `<tr data-id="${u.id}">
+        <td>${esc(u.email)}${u.super_admin ? ' <span class="badge blue">super admin</span>' : ""}</td>
+        <td style="width:120px"><select data-f="scope" ${u.id === me.id ? "disabled" : ""}>
+          ${["dma","all"].map(s => `<option ${u.staff_scope === s ? "selected" : ""}>${s}</option>`).join("")}</select></td>
+        <td>${u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString("az") : "—"}</td>
+        <td><span class="badge ${u.banned ? "red" : "green"}">${u.banned ? "Bloklu" : "Aktiv"}</span></td>
+        <td style="white-space:nowrap">
+          ${u.id === me.id ? "" : `<button class="btn-primary btn-sm" data-a="u-scope">İcazəni saxla</button>
+          <button class="btn-ghost btn-sm" data-a="u-ban">${u.banned ? "Blokdan çıxar" : "Blokla"}</button>`}
+          <button class="btn-ghost btn-sm" data-a="u-pass">Parolu dəyiş</button>
+        </td></tr>`).join("");
+    }
+    $("uAdd").onclick = async () => {
+      try {
+        await api("POST", { action: "create", email: $("uEmail").value, password: $("uPass").value, staff_scope: $("uScope").value });
+        $("uEmail").value = ""; $("uPass").value = ""; say("success", "İstifadəçi yaradıldı."); loadUsers();
+      } catch (e) { say("error", e.message); }
+    };
+
+    // ---- Sətir əməliyyatları ----
+    document.addEventListener("click", async ev => {
+      const b = ev.target.closest("[data-a]"); if (!b) return;
+      const tr = b.closest("tr"); const id = tr.dataset.id; const a = b.dataset.a;
+      const val = f => tr.querySelector(`[data-f="${f}"]`)?.value.trim();
+      b.disabled = true;
+      try {
+        if (a === "p-save") {
+          const name = val("name"); const dur = val("duration").replace(",", ".");
+          if (!name) throw new Error("Ad mütləqdir.");
+          if (dur && isNaN(Number(dur))) throw new Error("Müddət rəqəm olmalıdır.");
+          const { error } = await client.from("dma_programs").update({ name, duration: dur ? Number(dur) : null }).eq("id", id);
+          if (error) throw error; say("success", "Təlim yeniləndi."); await loadPrograms();
+        } else if (a === "p-toggle") {
+          const p = programs.find(x => String(x.id) === id);
+          const { error } = await client.from("dma_programs").update({ is_active: !p.is_active }).eq("id", id);
+          if (error) throw error; await loadPrograms();
+        } else if (a === "i-save") {
+          if (!val("full_name")) throw new Error("Ad mütləqdir.");
+          const { error } = await client.from("dma_instructors").update({ full_name: val("full_name"), phone: val("phone") || null }).eq("id", id);
+          if (error) throw error; say("success", "Müəllim yeniləndi."); await loadInstructors();
+        } else if (a === "i-toggle") {
+          const i = instructors.find(x => String(x.id) === id);
+          const { error } = await client.from("dma_instructors").update({ is_active: !i.is_active }).eq("id", id);
+          if (error) throw error; await loadInstructors();
+        } else if (a === "u-scope") {
+          await api("POST", { action: "set_scope", id, staff_scope: val("scope") }); say("success", "İcazə yeniləndi."); await loadUsers();
+        } else if (a === "u-ban") {
+          const u = users.find(x => x.id === id);
+          if (!u.banned && !confirm(u.email + " bloklansın?")) return;
+          await api("POST", { action: "set_banned", id, banned: !u.banned }); await loadUsers();
+        } else if (a === "u-pass") {
+          const password = prompt("Yeni parol (min 8 simvol):");
+          if (!password) return;
+          await api("POST", { action: "set_password", id, password }); say("success", "Parol dəyişdirildi.");
+        }
+      } catch (e) { say("error", e.message || String(e)); }
+      finally { b.disabled = false; }
+    });
+
+    $("tabs").addEventListener("click", ev => {
+      const t = ev.target.closest("[data-tab]"); if (!t) return;
+      document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === t));
+      document.querySelectorAll("[data-pane]").forEach(p => { p.hidden = p.dataset.pane !== t.dataset.tab; });
+    });
+    $("logoutButton").onclick = async () => { await client.auth.signOut(); location.href = "/admin/login/index.html"; };
+
+    (async function init() {
+      try {
+        const { data: s } = await client.auth.getSession();
+        if (!s.session) return gate("Admin girişi tələb olunur", "Əvvəlcə sistemə daxil olun.");
+        const { data: u, error } = await client.auth.getUser();
+        if (error) throw error;
+        me = u.user;
+        const m = me.app_metadata || {};
+        if (m.role !== "admin" || m.super_admin !== true) return gate("Giriş qadağandır", "Bu bölmə yalnız super admin üçündür.");
+        $("userEmail").textContent = me.email || "";
+        $("bootScreen").style.display = "none"; $("appShell").classList.add("ready");
+        await Promise.all([loadPrograms(), loadInstructors(), loadUsers()]);
+      } catch (e) { $("bootScreen").textContent = "Panel açılmadı: " + (e.message || e); }
+    })();
+  </script>
+</body>
+</html>

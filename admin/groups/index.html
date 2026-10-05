@@ -175,6 +175,10 @@
               <input id="nameInput" type="text" placeholder="DMA-42" required>
             </div>
             <div class="gf-field">
+              <label for="instructorSelect">Müəllim</label>
+              <select id="instructorSelect"><option value="">Seçilməyib</option></select>
+            </div>
+            <div class="gf-field">
               <label>Başlama tarixi</label>
               <input type="hidden" data-dp id="startInput">
             </div>
@@ -204,6 +208,7 @@
               <tr>
                 <th class="c-prog">Proqram</th>
                 <th>Qrup adı</th>
+                <th>Müəllim</th>
                 <th class="c-date">Başlama</th>
                 <th class="c-slot">Saat</th>
                 <th class="c-date">Bitmə</th>
@@ -224,6 +229,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/shared/erp-datetime.js"></script>
   <script src="../../config.js"></script>
+  <script src="/shared/erp-nav.js"></script>
   <script>
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -233,6 +239,7 @@
     const table = document.getElementById("groupsTable");
     const tbody = document.getElementById("groupsBody");
     const programSelect = document.getElementById("programSelect");
+    const instructorSelect = document.getElementById("instructorSelect");
     const form = document.getElementById("groupForm");
     const submitButton = document.getElementById("submitButton");
     const formMessage = document.getElementById("formMessage");
@@ -244,6 +251,7 @@
 
     let groups = [];
     let programs = [];
+    let instructors = [];
     let memberCounts = new Map();
     let membersCache = new Map();
     let expandedId = null;
@@ -287,11 +295,30 @@
       programSelect.innerHTML = `<option value="">Seç...</option>` + programs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
     }
 
+    function instructorOptions(selectedId) {
+      return `<option value="">Seçilməyib</option>` + instructors
+        .filter(i => i.is_active || i.id === selectedId)
+        .map(i => `<option value="${i.id}" ${i.id === selectedId ? "selected" : ""}>${escapeHtml(i.full_name)}</option>`).join("");
+    }
+
+    async function loadInstructors() {
+      const { data, error } = await client.from("dma_instructors").select("id, full_name, is_active").order("full_name");
+      if (error) { console.error("Instructors load error:", error); return; }
+      instructors = data || [];
+      instructorSelect.innerHTML = instructorOptions(null);
+    }
+
     async function loadGroups() {
-      const { data, error } = await client
+      const base = "id, name, program_id, starts_at, ends_at, training_slot, is_active, programs:dma_programs!dma_training_groups_program_id_fkey (id, name)";
+      let { data, error } = await client
         .from("dma_training_groups")
-        .select("id, name, program_id, starts_at, ends_at, training_slot, is_active, programs:dma_programs!dma_training_groups_program_id_fkey (id, name)")
+        .select(base + ", instructor_id, instructors:dma_instructors (full_name)")
         .order("starts_at", { ascending: false });
+      if (error) {
+        // müəllim migration-ı hələ işləməyibsə, qruplar yenə də açılsın
+        console.warn("Groups load with instructors failed, retrying without:", error);
+        ({ data, error } = await client.from("dma_training_groups").select(base).order("starts_at", { ascending: false }));
+      }
       if (error) {
         console.error("Groups load error:", error);
         stateMessage.className = "error";
@@ -329,19 +356,20 @@
 
     function memberRow(g) {
       const list = membersCache.get(g.id);
-      if (!list) return `<tr class="sub-row"><td colspan="8"><div class="members"><span>Yüklənir...</span></div></td></tr>`;
+      if (!list) return `<tr class="sub-row"><td colspan="9"><div class="members"><span>Yüklənir...</span></div></td></tr>`;
       const body = list.length
         ? list.map(m => `<a href="candidates/index.html?id=${m.id}">${escapeHtml(m.candidates?.full_name || "—")}</a> <span>${escapeHtml(m.candidates?.whatsapp_phone || "")}</span>`).join("")
         : `<span>Bu qrupda hələ üzv yoxdur</span>`;
-      return `<tr class="sub-row"><td colspan="8"><div class="members">${body}</div></td></tr>`;
+      return `<tr class="sub-row"><td colspan="9"><div class="members">${body}</div></td></tr>`;
     }
 
     function editRow(g) {
       return `
-        <tr class="edit-row"><td colspan="8">
+        <tr class="edit-row"><td colspan="9">
           <div class="grid-form" data-edit="${g.id}">
             <div class="gf-field"><label>Proqram</label><select data-f="program_id">${programOptions(g.program_id)}</select></div>
             <div class="gf-field"><label>Qrup adı</label><input type="text" data-f="name" value="${escapeHtml(g.name)}"></div>
+            <div class="gf-field"><label>Müəllim</label><select data-f="instructor_id">${instructorOptions(g.instructor_id)}</select></div>
             <div class="gf-field"><label>Başlama tarixi</label><input type="hidden" data-dp data-f="starts_at" value="${g.starts_at || ""}"></div>
             <div class="gf-field"><label>Təlim saatı</label><input type="hidden" data-slots data-f="training_slot" value="${g.training_slot || ""}"></div>
             <div class="gf-field"><label>Bitmə tarixi</label><input type="hidden" data-dp data-f="ends_at" value="${g.ends_at || ""}"></div>
@@ -363,6 +391,7 @@
         <tr class="data-row">
           <td class="c-prog">${escapeHtml(g.programs?.name || "—")}</td>
           <td><span class="gname" data-action="members" data-id="${g.id}">${escapeHtml(g.name)}</span></td>
+          <td>${escapeHtml(g.instructors?.full_name || "—")}</td>
           <td class="c-date">${fmtDate(g.starts_at)}</td>
           <td class="c-slot">${SLOT_LABELS[g.training_slot] || "—"}</td>
           <td class="c-date">${fmtDate(g.ends_at)}</td>
@@ -384,7 +413,7 @@
 
     function render() {
       if (!groups.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty">Hələ heç bir qrup yaradılmayıb.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="empty">Hələ heç bir qrup yaradılmayıb.</td></tr>`;
         return;
       }
       tbody.innerHTML = groups.map(rowHtml).join("");
@@ -450,6 +479,7 @@
         const slot = box.querySelector('[data-f="training_slot"]').value;
         const endsAt = box.querySelector('[data-f="ends_at"]').value || null;
         const isActive = box.querySelector('[data-f="is_active"]').value === "true";
+        const instructorId = Number(box.querySelector('[data-f="instructor_id"]').value) || null;
         if (!name || !programId || !startsAt || !slot) {
           showGroupsMessage("error", "Qrup adı, proqram, başlama tarixi və təlim saatı mütləqdir.");
           return;
@@ -457,7 +487,7 @@
         el.disabled = true;
         const { error } = await client
           .from("dma_training_groups")
-          .update({ name, program_id: programId, starts_at: startsAt, training_slot: slot, ends_at: endsAt, is_active: isActive })
+          .update({ name, program_id: programId, starts_at: startsAt, training_slot: slot, ends_at: endsAt, is_active: isActive, instructor_id: instructorId })
           .eq("id", id);
         el.disabled = false;
         if (error) {
@@ -509,6 +539,7 @@
       const startsAt = document.getElementById("startInput").value;
       const slot = document.getElementById("slotInput").value;
       const endsAt = document.getElementById("endInput").value || null;
+      const instructorId = Number(instructorSelect.value) || null;
       if (!programId || !name || !startsAt || !slot) {
         formMessage.className = "message error";
         formMessage.textContent = "Proqram, qrup adı, başlama tarixi və təlim saatı mütləqdir.";
@@ -518,7 +549,7 @@
       formMessage.className = "message";
       formMessage.textContent = "";
       const { error } = await client.from("dma_training_groups").insert({
-        program_id: programId, name, starts_at: startsAt, ends_at: endsAt, training_slot: slot, is_active: true,
+        program_id: programId, name, starts_at: startsAt, ends_at: endsAt, training_slot: slot, is_active: true, instructor_id: instructorId,
       });
       submitButton.disabled = false;
       if (error) {
@@ -530,6 +561,7 @@
       formMessage.className = "message success";
       formMessage.textContent = "Qrup yaradıldı.";
       programSelect.value = "";
+      instructorSelect.value = "";
       document.getElementById("nameInput").value = "";
       ["startInput", "slotInput", "endInput"].forEach(id => {
         const input = document.getElementById(id);
@@ -563,7 +595,8 @@
         bootScreen.style.display = "none";
         appShell.classList.add("ready");
         ERP.mountAll(form);
-        await Promise.all([loadPrograms(), loadGroups()]);
+        await Promise.all([loadPrograms(), loadInstructors()]);
+        await loadGroups();
       } catch (error) {
         console.error("Admin groups init error:", error);
         bootScreen.textContent = "Admin panel açılmadı: " + (error.message || "Naməlum xəta");
