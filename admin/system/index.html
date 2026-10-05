@@ -135,6 +135,8 @@
     .tabs button.on { background:var(--green); color:#fff; border-color:var(--green); }
     td .btn-sm { margin-right:4px; }
     table.grid td input, table.grid td select { height:30px; padding:0 8px; border:1px solid var(--line); border-radius:7px; font-size:13px; width:100%; }
+    .pay-cell { display:flex; gap:4px; flex-wrap:wrap; min-width:300px; }
+    .pay-cell select { width:150px; } .pay-cell input { width:78px; }
     .hint { color:var(--muted); font-size:12px; margin-top:6px; }
 </style>
 </head>
@@ -187,10 +189,16 @@
               <div class="gf-field"><label>Ad Soyad</label><input type="text" id="iName"></div>
               <div class="gf-field"><label>Telefon</label><input type="text" id="iPhone"></div>
               <div class="gf-field"><label>Təlim</label><select id="iProgram"></select></div>
+              <div class="gf-field"><label>Ödəniş növü</label>
+                <select id="iPayType" data-pay-type><option value="fixed">Sabit (dərs başına)</option><option value="per_student">Tələbə sayına görə</option></select></div>
+              <div class="gf-field pay-fixed"><label>Dərs haqqı (AZN)</label><input type="text" id="iFixed" placeholder="80"></div>
+              <div class="gf-field pay-ps"><label>Limit (nəfər)</label><input type="text" id="iThr" value="20"></div>
+              <div class="gf-field pay-ps"><label>Limitə qədər (AZN/nəfər)</label><input type="text" id="iBase" placeholder="35"></div>
+              <div class="gf-field pay-ps"><label>Limitdən sonra (AZN/nəfər)</label><input type="text" id="iExtra" placeholder="40"></div>
               <div class="gf-actions"><button class="btn-primary" id="iAdd">Müəllim əlavə et</button></div>
             </div>
           </div>
-          <table class="grid"><thead><tr><th>Ad Soyad</th><th>Təlim</th><th>Telefon</th><th>Status</th><th></th></tr></thead><tbody id="iBody"></tbody></table>
+          <table class="grid"><thead><tr><th>Ad Soyad</th><th>Təlim</th><th>Telefon</th><th>Ödəniş</th><th>Status</th><th></th></tr></thead><tbody id="iBody"></tbody></table>
         </section>
 
         <section class="panel" data-pane="users" hidden>
@@ -272,27 +280,63 @@
 
     async function loadInstructors() {
       $("iProgram").innerHTML = progOptions(null);
-      const { data, error } = await client.from("dma_instructors").select("id, full_name, phone, is_active, program_id").order("full_name");
+      const { data, error } = await client.from("dma_instructors").select("id, full_name, phone, is_active, program_id, pay_type, fixed_rate, base_rate, extra_rate, student_threshold").order("full_name");
       if (error) return say("error", "Müəllimlər yüklənmədi: " + error.message);
       instructors = data || [];
       $("iBody").innerHTML = instructors.map(i => `<tr data-id="${i.id}">
         <td><input data-f="full_name" value="${esc(i.full_name)}"></td>
         <td><select data-f="program_id">${progOptions(i.program_id)}</select></td>
         <td><input data-f="phone" value="${esc(i.phone || "")}"></td>
+        <td><div class="pay-cell">
+          <select data-f="pay_type" data-pay-type><option value="fixed" ${i.pay_type === "fixed" ? "selected" : ""}>Sabit</option><option value="per_student" ${i.pay_type === "per_student" ? "selected" : ""}>Tələbə sayına görə</option></select>
+          <input class="pay-fixed" data-f="fixed_rate" placeholder="Dərs haqqı" value="${i.fixed_rate ?? ""}">
+          <input class="pay-ps" data-f="student_threshold" placeholder="Limit" value="${i.student_threshold ?? 20}">
+          <input class="pay-ps" data-f="base_rate" placeholder="Baza" value="${i.base_rate ?? ""}">
+          <input class="pay-ps" data-f="extra_rate" placeholder="Əlavə" value="${i.extra_rate ?? ""}">
+        </div></td>
         <td>${badge(i.is_active)}</td>
         <td style="white-space:nowrap">
           <button class="btn-primary btn-sm" data-a="i-save">Yadda saxla</button>
           <button class="btn-ghost btn-sm" data-a="i-toggle">${i.is_active ? "Deaktiv et" : "Aktiv et"}</button>
-        </td></tr>`).join("") || `<tr><td colspan="5" class="empty">Müəllim yoxdur.</td></tr>`;
+        </td></tr>`).join("") || `<tr><td colspan="6" class="empty">Müəllim yoxdur.</td></tr>`;
+      document.querySelectorAll("#iBody tr[data-id]").forEach(syncPay);
+      syncPay($("iPayType").closest(".grid-form"));
     }
     $("iAdd").onclick = async () => {
       const full_name = $("iName").value.trim(); const phone = $("iPhone").value.trim() || null;
       if (!full_name) return say("error", "Ad mütləqdir.");
       const program_id = Number($("iProgram").value) || null;
-      const { error } = await client.from("dma_instructors").insert({ full_name, phone, program_id });
+      let pay;
+      try { pay = payFrom(k => ({ pay_type: $("iPayType").value, fixed_rate: $("iFixed").value, base_rate: $("iBase").value, extra_rate: $("iExtra").value, student_threshold: $("iThr").value })[k]); }
+      catch (e) { return say("error", e.message); }
+      const { error } = await client.from("dma_instructors").insert({ full_name, phone, program_id, ...pay });
       if (error) return say("error", "Əlavə olunmadı: " + error.message);
-      $("iName").value = ""; $("iPhone").value = ""; say("success", "Müəllim əlavə olundu."); loadInstructors();
+      $("iName").value = ""; $("iPhone").value = ""; ["iFixed","iBase","iExtra"].forEach(x => { $(x).value = ""; }); say("success", "Müəllim əlavə olundu."); loadInstructors();
     };
+
+    // Ödəniş növünə görə uyğun sahələri göstər/gizlət
+    function syncPay(scope) {
+      const t = scope.querySelector("[data-pay-type]").value;
+      scope.querySelectorAll(".pay-fixed").forEach(e => { e.style.display = t === "fixed" ? "" : "none"; });
+      scope.querySelectorAll(".pay-ps").forEach(e => { e.style.display = t === "per_student" ? "" : "none"; });
+    }
+    function num(v) { const x = String(v ?? "").trim().replace(",", "."); return x === "" ? null : Number(x); }
+    function payFrom(get) {
+      const pay_type = get("pay_type");
+      const f = { pay_type, fixed_rate: null, base_rate: null, extra_rate: null, student_threshold: 20 };
+      if (pay_type === "fixed") {
+        f.fixed_rate = num(get("fixed_rate"));
+        if (f.fixed_rate === null || isNaN(f.fixed_rate) || f.fixed_rate < 0) throw new Error("Dərs haqqını düzgün yazın.");
+      } else {
+        f.base_rate = num(get("base_rate")); f.extra_rate = num(get("extra_rate")); f.student_threshold = num(get("student_threshold"));
+        if ([f.base_rate, f.extra_rate].some(x => x === null || isNaN(x) || x < 0)) throw new Error("Baza və əlavə qiyməti düzgün yazın.");
+        if (!Number.isInteger(f.student_threshold) || f.student_threshold < 1) throw new Error("Limit tam ədəd olmalıdır.");
+      }
+      return f;
+    }
+    document.addEventListener("change", ev => {
+      if (ev.target.matches("[data-pay-type]")) syncPay(ev.target.closest("tr") || $("iPayType").closest(".grid-form"));
+    });
 
     // ---- İstifadəçilər ----
     async function loadUsers() {
@@ -335,7 +379,7 @@
           if (error) throw error; await loadPrograms();
         } else if (a === "i-save") {
           if (!val("full_name")) throw new Error("Ad mütləqdir.");
-          const { error } = await client.from("dma_instructors").update({ full_name: val("full_name"), phone: val("phone") || null, program_id: Number(val("program_id")) || null }).eq("id", id);
+          const { error } = await client.from("dma_instructors").update({ full_name: val("full_name"), phone: val("phone") || null, program_id: Number(val("program_id")) || null, ...payFrom(val) }).eq("id", id);
           if (error) throw error; say("success", "Müəllim yeniləndi."); await loadInstructors();
         } else if (a === "i-toggle") {
           const i = instructors.find(x => String(x.id) === id);
