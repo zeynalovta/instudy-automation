@@ -186,10 +186,11 @@
             <div class="grid-form">
               <div class="gf-field"><label>Ad Soyad</label><input type="text" id="iName"></div>
               <div class="gf-field"><label>Telefon</label><input type="text" id="iPhone"></div>
+              <div class="gf-field"><label>Təlim</label><select id="iProgram"></select></div>
               <div class="gf-actions"><button class="btn-primary" id="iAdd">Müəllim əlavə et</button></div>
             </div>
           </div>
-          <table class="grid"><thead><tr><th>Ad Soyad</th><th>Telefon</th><th>Status</th><th></th></tr></thead><tbody id="iBody"></tbody></table>
+          <table class="grid"><thead><tr><th>Ad Soyad</th><th>Təlim</th><th>Telefon</th><th>Status</th><th></th></tr></thead><tbody id="iBody"></tbody></table>
         </section>
 
         <section class="panel" data-pane="users" hidden>
@@ -259,27 +260,36 @@
       if (dur && isNaN(Number(dur))) return say("error", "Müddət rəqəm olmalıdır.");
       const { error } = await client.from("dma_programs").insert({ name, slug: slugify(name), duration: dur ? Number(dur) : null, is_active: true });
       if (error) return say("error", "Əlavə olunmadı: " + error.message);
-      $("pName").value = ""; $("pDur").value = ""; say("success", "Təlim əlavə olundu."); loadPrograms();
+      $("pName").value = ""; $("pDur").value = ""; say("success", "Təlim əlavə olundu."); loadPrograms().then(loadInstructors);
     };
 
     // ---- Müəllimlər ----
+    function progOptions(selectedId) {
+      return `<option value="">Seçilməyib</option>` + programs
+        .filter(p => p.is_active || p.id === selectedId)
+        .map(p => `<option value="${p.id}" ${p.id === selectedId ? "selected" : ""}>${esc(p.name)}</option>`).join("");
+    }
+
     async function loadInstructors() {
-      const { data, error } = await client.from("dma_instructors").select("id, full_name, phone, is_active").order("full_name");
+      $("iProgram").innerHTML = progOptions(null);
+      const { data, error } = await client.from("dma_instructors").select("id, full_name, phone, is_active, program_id").order("full_name");
       if (error) return say("error", "Müəllimlər yüklənmədi: " + error.message);
       instructors = data || [];
       $("iBody").innerHTML = instructors.map(i => `<tr data-id="${i.id}">
         <td><input data-f="full_name" value="${esc(i.full_name)}"></td>
+        <td><select data-f="program_id">${progOptions(i.program_id)}</select></td>
         <td><input data-f="phone" value="${esc(i.phone || "")}"></td>
         <td>${badge(i.is_active)}</td>
         <td style="white-space:nowrap">
           <button class="btn-primary btn-sm" data-a="i-save">Yadda saxla</button>
           <button class="btn-ghost btn-sm" data-a="i-toggle">${i.is_active ? "Deaktiv et" : "Aktiv et"}</button>
-        </td></tr>`).join("") || `<tr><td colspan="4" class="empty">Müəllim yoxdur.</td></tr>`;
+        </td></tr>`).join("") || `<tr><td colspan="5" class="empty">Müəllim yoxdur.</td></tr>`;
     }
     $("iAdd").onclick = async () => {
       const full_name = $("iName").value.trim(); const phone = $("iPhone").value.trim() || null;
       if (!full_name) return say("error", "Ad mütləqdir.");
-      const { error } = await client.from("dma_instructors").insert({ full_name, phone });
+      const program_id = Number($("iProgram").value) || null;
+      const { error } = await client.from("dma_instructors").insert({ full_name, phone, program_id });
       if (error) return say("error", "Əlavə olunmadı: " + error.message);
       $("iName").value = ""; $("iPhone").value = ""; say("success", "Müəllim əlavə olundu."); loadInstructors();
     };
@@ -325,7 +335,7 @@
           if (error) throw error; await loadPrograms();
         } else if (a === "i-save") {
           if (!val("full_name")) throw new Error("Ad mütləqdir.");
-          const { error } = await client.from("dma_instructors").update({ full_name: val("full_name"), phone: val("phone") || null }).eq("id", id);
+          const { error } = await client.from("dma_instructors").update({ full_name: val("full_name"), phone: val("phone") || null, program_id: Number(val("program_id")) || null }).eq("id", id);
           if (error) throw error; say("success", "Müəllim yeniləndi."); await loadInstructors();
         } else if (a === "i-toggle") {
           const i = instructors.find(x => String(x.id) === id);
@@ -364,7 +374,8 @@
         if (m.role !== "admin" || m.super_admin !== true) return gate("Giriş qadağandır", "Bu bölmə yalnız super admin üçündür.");
         $("userEmail").textContent = me.email || "";
         $("bootScreen").style.display = "none"; $("appShell").classList.add("ready");
-        await Promise.all([loadPrograms(), loadInstructors(), loadUsers()]);
+        await loadPrograms();
+        await Promise.all([loadInstructors(), loadUsers()]);
       } catch (e) { $("bootScreen").textContent = "Panel açılmadı: " + (e.message || e); }
     })();
   </script>

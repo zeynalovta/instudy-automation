@@ -295,17 +295,18 @@
       programSelect.innerHTML = `<option value="">Seç...</option>` + programs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
     }
 
-    function instructorOptions(selectedId) {
+    // Seçilmiş təlimə bağlı (və ya təlimi göstərilməyən) müəllimlər
+    function instructorOptions(selectedId, programId) {
       return `<option value="">Seçilməyib</option>` + instructors
-        .filter(i => i.is_active || i.id === selectedId)
+        .filter(i => i.id === selectedId || (i.is_active && (!programId || !i.program_id || i.program_id === programId)))
         .map(i => `<option value="${i.id}" ${i.id === selectedId ? "selected" : ""}>${escapeHtml(i.full_name)}</option>`).join("");
     }
 
     async function loadInstructors() {
-      const { data, error } = await client.from("dma_instructors").select("id, full_name, is_active").order("full_name");
+      const { data, error } = await client.from("dma_instructors").select("id, full_name, is_active, program_id").order("full_name");
       if (error) { console.error("Instructors load error:", error); return; }
       instructors = data || [];
-      instructorSelect.innerHTML = instructorOptions(null);
+      instructorSelect.innerHTML = instructorOptions(null, Number(programSelect.value) || null);
     }
 
     async function loadGroups() {
@@ -369,7 +370,7 @@
           <div class="grid-form" data-edit="${g.id}">
             <div class="gf-field"><label>Proqram</label><select data-f="program_id">${programOptions(g.program_id)}</select></div>
             <div class="gf-field"><label>Qrup adı</label><input type="text" data-f="name" value="${escapeHtml(g.name)}"></div>
-            <div class="gf-field"><label>Müəllim</label><select data-f="instructor_id">${instructorOptions(g.instructor_id)}</select></div>
+            <div class="gf-field"><label>Müəllim</label><select data-f="instructor_id">${instructorOptions(g.instructor_id, g.program_id)}</select></div>
             <div class="gf-field"><label>Başlama tarixi</label><input type="hidden" data-dp data-f="starts_at" value="${g.starts_at || ""}"></div>
             <div class="gf-field"><label>Təlim saatı</label><input type="hidden" data-slots data-f="training_slot" value="${g.training_slot || ""}"></div>
             <div class="gf-field"><label>Bitmə tarixi</label><input type="hidden" data-dp data-f="ends_at" value="${g.ends_at || ""}"></div>
@@ -423,6 +424,19 @@
     function closeMenus() {
       document.querySelectorAll(".menu").forEach(m => { m.hidden = true; });
     }
+
+    programSelect.addEventListener("change", () => {
+      instructorSelect.innerHTML = instructorOptions(null, Number(programSelect.value) || null);
+    });
+    tbody.addEventListener("change", event => {
+      const sel = event.target.closest('select[data-f="program_id"]');
+      if (!sel) return;
+      const box = sel.closest("[data-edit]");
+      const instr = box.querySelector('[data-f="instructor_id"]');
+      const cur = Number(instr.value) || null;
+      instr.innerHTML = instructorOptions(null, Number(sel.value) || null);
+      if (cur && [...instr.options].some(o => Number(o.value) === cur)) instr.value = String(cur);
+    });
 
     window.addEventListener("scroll", closeMenus, true);
     window.addEventListener("resize", closeMenus);
