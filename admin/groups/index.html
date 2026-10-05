@@ -112,7 +112,8 @@
     .gname:hover, .cnt:hover { color:var(--green); }
     .cnt { font-weight:600; }
     .more { background:#fff; border:1px solid var(--line); border-radius:6px; width:28px; height:24px; cursor:pointer; line-height:1; color:var(--ink); padding:0; }
-    .menu { position:absolute; right:8px; top:30px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; z-index:20; min-width:170px; display:flex; flex-direction:column; text-align:left; }
+    .menu { position:fixed; z-index:1000; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 6px 16px #0002; min-width:170px; display:flex; flex-direction:column; text-align:left; }
+    .menu[hidden] { display:none; }
     .menu button { padding:7px 10px; font-size:13px; text-align:left; background:none; border:0; color:var(--ink); cursor:pointer; width:100%; border-radius:0; font-weight:500; }
     .menu button:hover { background:#fff7f0; }
     .menu button.danger { color:#b42318; }
@@ -372,7 +373,6 @@
             <div class="menu" data-menu="${g.id}" hidden>
               <button type="button" data-action="members" data-id="${g.id}">Qrupa bax</button>
               <button type="button" data-action="edit" data-id="${g.id}">Redaktə et</button>
-              <button type="button" data-action="members" data-id="${g.id}">Tələbələri göstər</button>
               <button type="button" data-action="toggle" data-id="${g.id}">${g.is_active ? "Deaktiv et" : "Aktiv et"}</button>
               <button type="button" class="danger" data-action="delete" data-id="${g.id}">Sil</button>
             </div>
@@ -395,6 +395,9 @@
       document.querySelectorAll(".menu").forEach(m => { m.hidden = true; });
     }
 
+    window.addEventListener("scroll", closeMenus, true);
+    window.addEventListener("resize", closeMenus);
+
     tbody.addEventListener("click", async event => {
       const el = event.target.closest("[data-action]");
       if (!el) return;
@@ -406,6 +409,12 @@
         const wasHidden = menu.hidden;
         closeMenus();
         menu.hidden = !wasHidden;
+        if (!menu.hidden) {
+          const r = el.getBoundingClientRect();
+          const h = menu.offsetHeight;
+          menu.style.left = Math.max(8, r.right - menu.offsetWidth) + "px";
+          menu.style.top = (window.innerHeight - r.bottom < h + 8 && r.top > h ? r.top - h - 4 : r.bottom + 4) + "px";
+        }
         return;
       }
       closeMenus();
