@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/admin", "destination": "/erp/admin/index.html" },
+    { "source": "/admin/", "destination": "/erp/admin/index.html" },
+    { "source": "/admin/:path*/", "destination": "/erp/admin/:path*/index.html" },
     { "source": "/admin/:path*", "destination": "/erp/admin/:path*" },
     { "source": "/shared/:path*", "destination": "/erp/shared/:path*" }
   ]
