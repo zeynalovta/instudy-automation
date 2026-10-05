@@ -167,6 +167,7 @@
           <button data-tab="programs" class="on">Təlimlər</button>
           <button data-tab="instructors">Müəllimlər</button>
           <button data-tab="users">İstifadəçilər</button>
+          <button data-tab="payroll">Maaşlar</button>
         </div>
         <div id="msg" class="message"></div>
 
@@ -199,6 +200,19 @@
             </div>
           </div>
           <table class="grid"><thead><tr><th>Ad Soyad</th><th>Təlim</th><th>Telefon</th><th>Ödəniş</th><th>Status</th><th></th></tr></thead><tbody id="iBody"></tbody></table>
+        </section>
+
+        <section class="panel" data-pane="payroll" hidden>
+          <div class="panel-head">Müəllim maaşları (davamiyyətə görə)</div>
+          <div class="panel-body">
+            <div class="grid-form">
+              <div class="gf-field"><label>Ay</label><input type="month" id="mMonth" style="width:170px;height:30px;border:1px solid var(--line);border-radius:7px;padding:0 8px"></div>
+              <div class="gf-actions"><button class="btn-primary" id="mLoad">Göstər</button></div>
+            </div>
+            <div class="hint">Dərs = qrupun davamiyyət yazılan günü (gələn tələbə sayı 0 olan gün sayılmır). Sabit: dərs haqqı. Tələbə sayına görə: (limitə qədər × baza + limitdən sonra × əlavə) ÷ limit.</div>
+          </div>
+          <table class="grid"><thead><tr><th>Müəllim</th><th>Ödəniş növü</th><th>Dərs sayı</th><th>Cəmi (AZN)</th></tr></thead><tbody id="mBody"></tbody></table>
+          <table class="grid" style="margin-top:12px"><thead><tr><th>Tarix</th><th>Müəllim</th><th>Qrup</th><th>Gələn</th><th>Məbləğ (AZN)</th></tr></thead><tbody id="mDetail"></tbody></table>
         </section>
 
         <section class="panel" data-pane="users" hidden>
@@ -337,6 +351,30 @@
     document.addEventListener("change", ev => {
       if (ev.target.matches("[data-pay-type]")) syncPay(ev.target.closest("tr") || $("iPayType").closest(".grid-form"));
     });
+
+    // ---- Maaşlar ----
+    const money = x => (Math.round(Number(x) * 100) / 100).toLocaleString("az", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    async function loadPayroll() {
+      const m = $("mMonth").value; if (!m) return say("error", "Ayı seçin.");
+      const [y, mo] = m.split("-").map(Number);
+      const from = `${m}-01`;
+      const to = new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 10);
+      const { data, error } = await client.from("dma_instructor_lesson_pay").select("*")
+        .gte("session_date", from).lt("session_date", to).order("session_date");
+      if (error) return say("error", "Maaş hesablanmadı: " + error.message);
+      const by = new Map();
+      (data || []).forEach(r => {
+        const e = by.get(r.instructor_id) || { name: r.instructor_name, type: r.pay_type, n: 0, sum: 0 };
+        e.n++; e.sum += Number(r.pay); by.set(r.instructor_id, e);
+      });
+      const rows = [...by.values()].sort((a, b) => a.name.localeCompare(b.name));
+      $("mBody").innerHTML = rows.map(e => `<tr><td><b>${esc(e.name)}</b></td><td>${e.type === "fixed" ? "Sabit" : "Tələbə sayına görə"}</td><td>${e.n}</td><td><b>${money(e.sum)}</b></td></tr>`).join("")
+        + (rows.length ? `<tr><td colspan="3"><b>Yekun</b></td><td><b>${money(rows.reduce((a, e) => a + e.sum, 0))}</b></td></tr>` : `<tr><td colspan="4" class="empty">Bu ay üçün dərs yoxdur.</td></tr>`);
+      $("mDetail").innerHTML = (data || []).map(r => `<tr><td>${r.session_date.split("-").reverse().join(".")}</td><td>${esc(r.instructor_name)}</td><td>${esc(r.group_name)}</td><td>${r.attended_count}</td><td>${money(r.pay)}</td></tr>`).join("");
+      say("", ""); msg.className = "message";
+    }
+    $("mMonth").value = new Date().toISOString().slice(0, 7);
+    $("mLoad").onclick = loadPayroll;
 
     // ---- İstifadəçilər ----
     async function loadUsers() {
