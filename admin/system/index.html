@@ -192,10 +192,10 @@
               <div class="gf-field"><label>Təlim</label><select id="iProgram"></select></div>
               <div class="gf-field"><label>Ödəniş növü</label>
                 <select id="iPayType" data-pay-type><option value="fixed">Sabit (dərs başına)</option><option value="per_student">Tələbə sayına görə</option></select></div>
-              <div class="gf-field pay-fixed"><label>Dərs haqqı (AZN)</label><input type="text" id="iFixed" placeholder="80"></div>
+              <div class="gf-field pay-fixed"><label>Dərs haqqı (AZN)</label><input type="text" id="iFixed" placeholder="məs. 80 — yazın"></div>
               <div class="gf-field pay-ps"><label>Limit (nəfər)</label><input type="text" id="iThr" value="20"></div>
-              <div class="gf-field pay-ps"><label>Limitə qədər (AZN/nəfər)</label><input type="text" id="iBase" placeholder="35"></div>
-              <div class="gf-field pay-ps"><label>Limitdən sonra (AZN/nəfər)</label><input type="text" id="iExtra" placeholder="40"></div>
+              <div class="gf-field pay-ps"><label>Limitə qədər (AZN/nəfər)</label><input type="text" id="iBase" placeholder="məs. 35 — yazın"></div>
+              <div class="gf-field pay-ps"><label>Limitdən sonra (AZN/nəfər)</label><input type="text" id="iExtra" placeholder="məs. 40 — yazın"></div>
               <div class="gf-actions"><button class="btn-primary" id="iAdd">Müəllim əlavə et</button></div>
             </div>
           </div>
@@ -343,7 +343,9 @@
         if (f.fixed_rate === null || isNaN(f.fixed_rate) || f.fixed_rate < 0) throw new Error("Dərs haqqını düzgün yazın.");
       } else {
         f.base_rate = num(get("base_rate")); f.extra_rate = num(get("extra_rate")); f.student_threshold = num(get("student_threshold"));
-        if ([f.base_rate, f.extra_rate].some(x => x === null || isNaN(x) || x < 0)) throw new Error("Baza və əlavə qiyməti düzgün yazın.");
+        const bad = (x) => x === null || isNaN(x) || x < 0;
+        if (bad(f.base_rate)) throw new Error("\"Limitə qədər\" qiymətini yazın (boşdur və ya düzgün deyil).");
+        if (bad(f.extra_rate)) throw new Error("\"Limitdən sonra\" qiymətini yazın (boşdur və ya düzgün deyil).");
         if (!Number.isInteger(f.student_threshold) || f.student_threshold < 1) throw new Error("Limit tam ədəd olmalıdır.");
       }
       return f;
