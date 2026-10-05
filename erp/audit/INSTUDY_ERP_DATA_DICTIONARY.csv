@@ -1,0 +1,83 @@
+table_name,column_name,data_type,nullable,default_value,primary_key,foreign_key,unique_constraint,description
+dma_programs,id,bigint,NO,identity,YES,,,Proqramın unikal ID-si
+dma_programs,name,text,NO,,,,,Proqramın adı (məs. "Backend Developer")
+dma_programs,slug,text,NO,,,,YES,URL-safe unikal ad (məs. "backend"); public API sorğularında istifadə olunur
+dma_programs,is_active,boolean,YES,true,,,,Proqram namizədlərə aktiv göstərilirmi
+dma_programs,created_at,timestamptz,YES,now(),,,,Yaradılma vaxtı
+dma_programs,duration,real,YES,,,,,Təlim müddəti (ay); vahid kodda təsdiqlənməyib
+dma_candidates,id,bigint,NO,identity,YES,,,Namizədin unikal ID-si
+dma_candidates,full_name,text,NO,,,,,Ad və soyad
+dma_candidates,fin,text,NO,,,,YES,FİN kod; dublikat namizədin qarşısını alan əsas mexanizm
+dma_candidates,birth_date,date,NO,,,,,Doğum tarixi; yaş-uyğunluq hesablamasında istifadə olunur
+dma_candidates,email,text,YES,,,,,E-poçt (məcburi deyil)
+dma_candidates,whatsapp_phone,text,NO,,,,,Əlaqə telefonu
+dma_candidates,education,text,YES,,,,,Təhsil səviyyəsi (sərbəst mətn)
+dma_candidates,is_student,boolean,YES,,,,,Hazırda tələbədirmi (uyğunluq meyarı)
+dma_candidates,is_employed,boolean,YES,,,,,Hazırda işləyirmi (uyğunluq meyarı)
+dma_candidates,has_active_voen,boolean,YES,,,,,Aktiv VÖEN-i varmı (uyğunluq meyarı)
+dma_candidates,address,text,YES,,,,,Faktiki ünvan
+dma_candidates,attended_dma_course_last_12_months,boolean,YES,,,,,Son 12 ayda DMA kursunda iştirak edibmi (uyğunluq meyarı)
+dma_candidates,created_at,timestamptz,YES,now(),,,,Yaradılma vaxtı
+dma_candidates,updated_at,timestamptz,YES,now(),,,,"Son dəyişiklik vaxtı, trigger ilə avtomatik"
+dma_applications,id,bigint,NO,identity,YES,,,Müraciətin unikal ID-si
+dma_applications,candidate_id,bigint,NO,,,dma_candidates.id (ON DELETE CASCADE),,Hansı namizədə aiddir
+dma_applications,program_id,bigint,NO,,,dma_programs.id,,Hansı proqrama müraciətdir
+dma_applications,eligibility_status,text,YES,NEW,,,,"CHECK: NEW / PRELIMINARILY_ELIGIBLE / MANUAL_REVIEW_REQUIRED / NOT_ELIGIBLE. Trigger tərəfindən INSERT zamanı hesablanır"
+dma_applications,eligibility_reason,text,YES,,,,,Uyğunluq qərarının izahı; trigger tərəfindən yazılır
+dma_applications,unemployment_status,text,YES,NOT_CHECKED,,,,"CHECK: NOT_CHECKED / PENDING / CONFIRMED / NOT_CONFIRMED. Heç bir admin UI bunu dəyişmir (həmişə defolt qalır)"
+dma_applications,current_status,text,YES,NEW_APPLICATION,,,,"CHECK, 27 icazəli dəyər (tam siyahı SCHEMA.sql-də); pipeline-ın əsas göstəricisi, bir neçə trigger tərəfindən avtomatik dəyişdirilir, staff tərəfindən də əl ilə"
+dma_applications,general_note,text,YES,,,,,Ümumi staff qeydi (tək sahə, tarixçə yoxdur)
+dma_applications,created_at,timestamptz,YES,now(),,,,Müraciət tarixi
+dma_applications,updated_at,timestamptz,YES,now(),,,,"Son dəyişiklik vaxtı, trigger ilə avtomatik"
+dma_applications,exam_score,numeric,YES,,,,,İmtahan balı; dəyişəndə current_status-u avtomatik yönləndirir (trigger)
+dma_applications,interview_note,text,YES,,,,,Müsahibəyə aid ayrıca qeyd
+dma_applications,employment_status,text,YES,,,,,CHECK: SEEKING / EMPLOYED / NOT_SEEKING (yalnız Məzunlar səhifəsində istifadə olunur)
+dma_applications,employment_note,text,YES,,,,,İşədüzəlmə ilə bağlı sərbəst qeyd
+dma_applications,employed_at,date,YES,,,,,İşə düzəlmə tarixi
+dma_applications,exam_scheduled_at,timestamptz,YES,,,,,"Planlaşdırılan imtahan tarixi/saatı; həm staff əl ilə, həm booking RPC-si yazır"
+dma_applications,interview_scheduled_at,timestamptz,YES,,,,,"Planlaşdırılan müsahibə tarixi/saatı; həm staff əl ilə, həm booking RPC-si yazır"
+dma_applications,interview_attended,text,YES,,,,,"CHECK: YES / NO. ""NO"" seçilsə trigger interview_result-u avtomatik FAILED edir"
+dma_applications,interview_result,text,YES,,,,,CHECK: PASSED / FAILED / RESERVE
+dma_applications,dma_status,text,YES,,,,,"CHECK: SUBMITTED / APPROVED / REJECTED (Dövlət Məşğulluq Agentliyinə göndərilmə statusu)"
+dma_applications,training_group_id,bigint,YES,,,dma_training_groups.id (NO CASCADE),,"Təyin edildiyi təlim qrupu; qrup silinərkən CASCADE yoxdur, FK pozuntusu ilə qorunur"
+dma_application_status_history,id,bigint,NO,identity,YES,,,Tarixçə sətrinin ID-si
+dma_application_status_history,application_id,bigint,NO,,,dma_applications.id (ON DELETE CASCADE),,Hansı müraciətə aiddir
+dma_application_status_history,old_status,text,YES,,,,,Əvvəlki current_status (ilk sətirdə NULL)
+dma_application_status_history,new_status,text,NO,,,,,Yeni current_status
+dma_application_status_history,note,text,YES,,,,,"Heç bir kod yolu doldurmur — həmişə NULL (VERIFIED)"
+dma_application_status_history,changed_at,timestamptz,NO,now(),,,,Dəyişiklik vaxtı
+dma_exam_sessions,id,bigint,NO,identity,YES,,,İmtahan slotunun ID-si
+dma_exam_sessions,program_id,bigint,NO,,,dma_programs.id,,Hansı proqram üçündür
+dma_exam_sessions,starts_at,timestamptz,NO,,,,,Başlama tarixi/saatı
+dma_exam_sessions,capacity,integer,NO,,,,,"Maksimum tutum, CHECK (capacity > 0)"
+dma_exam_sessions,created_at,timestamptz,NO,now(),,,,Yaradılma vaxtı
+dma_exam_sessions,updated_at,timestamptz,NO,now(),,,,"Trigger yoxdur — sətir yaradılandan sonra heç vaxt dəyişmir (VERIFIED tapıntı)"
+dma_exam_bookings,id,bigint,NO,identity,YES,,,Rezervasiyanın ID-si
+dma_exam_bookings,application_id,bigint,NO,,,dma_applications.id (NO CASCADE),,Hansı müraciətə aiddir
+dma_exam_bookings,exam_session_id,bigint,NO,,,dma_exam_sessions.id,,Hansı slota rezervdir
+dma_exam_bookings,status,text,NO,BOOKED,,,,"BOOKED/CANCELLED; DB-də CHECK constraint yoxdur, yalnız RPC məntiqi ilə təmin olunur"
+dma_exam_bookings,created_at,timestamptz,NO,now(),,,,Rezervasiya vaxtı
+dma_interview_sessions,id,bigint,NO,identity,YES,,,Müsahibə slotunun ID-si
+dma_interview_sessions,program_id,bigint,NO,,,dma_programs.id,,Hansı proqram üçündür
+dma_interview_sessions,starts_at,timestamptz,NO,,,,YES (program_id+starts_at),Başlama tarixi/saatı
+dma_interview_sessions,capacity,integer,NO,,,,,"Maksimum tutum, CHECK (capacity > 0)"
+dma_interview_sessions,created_at,timestamptz,NO,now(),,,,Yaradılma vaxtı
+dma_interview_sessions,updated_at,timestamptz,NO,now(),,,,Trigger yoxdur (eyni tapıntı exam_sessions-da)
+dma_interview_bookings,id,bigint,NO,identity,YES,,,Rezervasiyanın ID-si
+dma_interview_bookings,application_id,bigint,NO,,,dma_applications.id,,Hansı müraciətə aiddir
+dma_interview_bookings,interview_session_id,bigint,NO,,,dma_interview_sessions.id,,Hansı slota rezervdir
+dma_interview_bookings,status,text,NO,BOOKED,,,,BOOKED/CANCELLED; DB-də CHECK constraint yoxdur
+dma_interview_bookings,created_at,timestamptz,NO,now(),,,,Rezervasiya vaxtı
+dma_training_groups,id,bigint,NO,identity,YES,,,Qrupun ID-si
+dma_training_groups,program_id,bigint,NO,,,dma_programs.id,,Hansı proqrama aiddir
+dma_training_groups,name,text,NO,,,,,Qrupun adı
+dma_training_groups,starts_at,date,NO,,,,,Təlimin başlama tarixi
+dma_training_groups,ends_at,date,YES,,,,,"Təlimin bitmə tarixi (boşdursa, ""aktiv qrup"" sayılır)"
+dma_training_groups,created_at,timestamptz,NO,now(),,,,Yaradılma vaxtı
+dma_attendance_records,id,bigint,NO,identity,YES,,,Davamiyyət sətrinin ID-si
+dma_attendance_records,training_group_id,bigint,NO,,,dma_training_groups.id,YES (composite),Hansı qrupa aiddir
+dma_attendance_records,application_id,bigint,NO,,,dma_applications.id,YES (composite),Hansı namizədə aiddir
+dma_attendance_records,session_date,date,NO,,,,YES (composite),Davamiyyət günü
+dma_attendance_records,attended,boolean,NO,,,,,Gəlib-gəlmədiyi
+dma_attendance_records,created_at,timestamptz,NO,now(),,,,Yaradılma vaxtı
+dma_attendance_records,updated_at,timestamptz,NO,now(),,,,Trigger yoxdur (eyni tapıntı exam_sessions-da)
