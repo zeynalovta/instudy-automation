@@ -267,6 +267,7 @@
               <tbody id="candidateBody"></tbody>
             </table>
           </div>
+          <div id="scrollSentinel" style="padding:18px 20px;text-align:center;color:var(--muted);font-size:13px;"></div>
         </section>
       </section>
     </main>
@@ -288,8 +289,9 @@
     const eligibilityFilter = document.getElementById("eligibilityFilter");
 
     let applications = [];
+    const PAGE_SIZE = 50;
+
     let trainingGroups = [];
-    let attendanceRecords = [];
     let sortState = { key: null, dir: 1 };
 
     const statusLabel = {
@@ -481,67 +483,39 @@
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    const sorters = {
-      name: item => (item.candidates?.full_name || "").toLocaleLowerCase("az"),
-      program: item => (item.programs?.name || "").toLocaleLowerCase("az"),
-      eligibility: item => item.eligibility_status || "",
-      status: item => item.current_status || "",
-      score: item => item.exam_score ?? -Infinity,
-      examDate: item => item.exam_scheduled_at || "",
-      interviewDate: item => item.interview_scheduled_at || "",
-      createdAt: item => item.created_at || "",
-    };
+    let dashData = { stats: [], waitingLeads: 0, withNote: 0, attendanceTotal: 0, attendanceYes: 0 };
+    let programsList = [];
 
     function renderDashboard() {
       document.getElementById("dashDate").textContent = formatDateAz(new Date());
 
-      const today = new Date().toDateString();
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
       const todayIso = new Date().toISOString().slice(0, 10);
-
       const activeGroupCount = trainingGroups.filter(g => !g.ends_at || g.ends_at >= todayIso).length;
       document.getElementById("dashGroupCount").textContent = activeGroupCount;
 
-      document.getElementById("dashAttendance").textContent = attendanceRecords.length
-        ? `${Math.round((attendanceRecords.filter(r => r.attended).length / attendanceRecords.length) * 100)}%`
+      document.getElementById("dashAttendance").textContent = dashData.attendanceTotal
+        ? `${Math.round((dashData.attendanceYes / dashData.attendanceTotal) * 100)}%`
         : "—";
 
-      document.getElementById("dashWaitingLeads").textContent = applications.filter(a => a.current_status === "NEW_APPLICATION" && !a.exam_scheduled_at).length;
-      document.getElementById("dashWithNote").textContent = applications.filter(a => (a.general_note || "").trim()).length;
+      document.getElementById("dashWaitingLeads").textContent = dashData.waitingLeads;
+      document.getElementById("dashWithNote").textContent = dashData.withNote;
 
-      const byProgram = new Map();
-      for (const item of applications) {
-        const name = item.programs?.name || "Naməlum";
-        if (!byProgram.has(name)) {
-          byProgram.set(name, { training: 0, inProcess: 0, today: 0, yesterday: 0 });
-        }
-        const row = byProgram.get(name);
-        const bucket = stageBucket(item);
-
-        if (bucket === "ENROLLED") row.training++;
-        else if (bucket === "") row.inProcess++;
-
-        const createdDay = new Date(item.created_at).toDateString();
-        if (createdDay === today) row.today++;
-        if (createdDay === yesterday) row.yesterday++;
-      }
-
-      const rows = [...byProgram.entries()].sort((a, b) => a[0].localeCompare(b[0], "az"));
+      const rows = [...dashData.stats].sort((a, b) => (a.program_name || "").localeCompare(b.program_name || "", "az"));
       const totals = { training: 0, inProcess: 0, today: 0, yesterday: 0 };
 
-      document.getElementById("dashBody").innerHTML = rows.map(([name, r]) => {
-        totals.training += r.training;
-        totals.inProcess += r.inProcess;
-        totals.today += r.today;
-        totals.yesterday += r.yesterday;
+      document.getElementById("dashBody").innerHTML = rows.map(r => {
+        totals.training += Number(r.training);
+        totals.inProcess += Number(r.in_process);
+        totals.today += Number(r.today);
+        totals.yesterday += Number(r.yesterday);
 
         return `
           <tr>
-            <td>${escapeHtml(name)}</td>
-            <td>${r.training}</td>
-            <td>${r.inProcess}</td>
-            <td>${r.today}</td>
-            <td>${r.yesterday}</td>
+            <td>${escapeHtml(r.program_name || "Naməlum")}</td>
+            <td>${Number(r.training)}</td>
+            <td>${Number(r.in_process)}</td>
+            <td>${Number(r.today)}</td>
+            <td>${Number(r.yesterday)}</td>
           </tr>
         `;
       }).join("") || `<tr><td colspan="5" class="empty">Məlumat yoxdur.</td></tr>`;
@@ -555,15 +529,7 @@
     }
 
     function populatePrograms() {
-      const seen = new Map();
-
-      applications.forEach(item => {
-        if (item.programs && !seen.has(item.programs.id)) {
-          seen.set(item.programs.id, item.programs);
-        }
-      });
-
-      for (const program of seen.values()) {
+      for (const program of programsList) {
         const option = document.createElement("option");
         option.value = String(program.id);
         option.textContent = program.name;
@@ -571,33 +537,97 @@
       }
     }
 
-    function renderTable() {
-      const search = searchInput.value.trim().toLocaleLowerCase("az");
-      const selectedProgram = programFilter.value;
-      const selectedEligibility = eligibilityFilter.value;
+    // Siyahı serverdə süzülür, sıralanır və səhifələnir (dma_application_list view-su).
+    // Köhnə sətir formasını (item.candidates / item.programs) saxlayırıq ki, cədvəl kodu dəyişməsin.
+    const SORT_COLUMNS = {
+      name: "full_name", program: "program_name", eligibility: "eligibility_status",
+      status: "current_status", score: "exam_score", examDate: "exam_scheduled_at",
+      interviewDate: "interview_scheduled_at", createdAt: "created_at",
+    };
+    let totalCount = 0;
+    let pageRequest = 0;
 
-      const filtered = applications.filter(item => {
-        const c = item.candidates || {};
-        const haystack = [c.full_name, c.fin, c.whatsapp_phone]
-          .join(" ").toLocaleLowerCase("az");
+    function reshapeRow(row) {
+      return {
+        ...row,
+        candidates: { id: row.candidate_id, full_name: row.full_name, fin: row.fin, whatsapp_phone: row.whatsapp_phone, email: row.email },
+        programs: { id: row.program_id, name: row.program_name },
+      };
+    }
 
-        return (!search || haystack.includes(search))
-          && (!selectedProgram || String(item.program_id) === selectedProgram)
-          && (!selectedEligibility || item.eligibility_status === selectedEligibility);
-      });
+    let hasMore = false;
+    let loadingRows = false;
 
-      if (sortState.key) {
-        const getValue = sorters[sortState.key];
-        filtered.sort((a, b) => {
-          const va = getValue(a);
-          const vb = getValue(b);
-          if (va < vb) return -1 * sortState.dir;
-          if (va > vb) return 1 * sortState.dir;
-          return 0;
-        });
+    function updateSentinel() {
+      const el = document.getElementById("scrollSentinel");
+      if (loadingRows) el.textContent = "Yüklənir...";
+      else if (hasMore) el.textContent = `${applications.length} / ${totalCount} — daha çoxu üçün aşağı fırladın`;
+      else el.textContent = totalCount ? `Cəmi ${totalCount} nəticə` : "";
+    }
+
+    // reset=true: filtr/sıralama dəyişəndə baştan; reset=false: scroll zamanı növbəti 50 sətir
+    async function loadRows(reset) {
+      if (reset) {
+        pageRequest++;
+        loadingRows = false;
+        applications = [];
+        hasMore = false;
+        tbody.innerHTML = "";
+        table.style.opacity = "0.5";
+      }
+      if (loadingRows) return;
+      loadingRows = true;
+      const requestId = pageRequest;
+      updateSentinel();
+
+      const search = searchInput.value.trim().replace(/[,()%*\\]/g, " ").trim();
+      let query = client.from("dma_application_list").select("*", reset ? { count: "exact" } : {});
+      if (programFilter.value) query = query.eq("program_id", Number(programFilter.value));
+      if (eligibilityFilter.value) query = query.eq("eligibility_status", eligibilityFilter.value);
+      if (search) {
+        query = query.or(`full_name.ilike.%${search}%,fin.ilike.%${search}%,whatsapp_phone.ilike.%${search}%`);
+      }
+      if (sortState.key) query = query.order(SORT_COLUMNS[sortState.key], { ascending: sortState.dir === 1 });
+      else query = query.order("created_at", { ascending: false });
+      const from = applications.length;
+      query = query.order("id", { ascending: false }).range(from, from + PAGE_SIZE - 1);
+
+      const { data, error, count } = await query;
+      if (requestId !== pageRequest) return; // daha yeni sorğu gedib
+      loadingRows = false;
+      table.style.opacity = "";
+
+      if (error) {
+        console.error("Load rows error:", error);
+        stateMessage.hidden = false;
+        stateMessage.className = "error";
+        stateMessage.textContent = "Siyahı yüklənmədi: " + error.message;
+        return;
       }
 
-      tbody.innerHTML = filtered.map(item => {
+      if (reset) totalCount = count ?? 0;
+      const rows = (data || []).map(reshapeRow);
+      const startIndex = applications.length;
+      applications = applications.concat(rows);
+      hasMore = rows.length === PAGE_SIZE && applications.length < totalCount;
+      renderTable(startIndex);
+
+      // Səhifə hələ qısadırsa (sentinel görünür), növbəti hissəni də yüklə
+      requestAnimationFrame(() => {
+        const rect = document.getElementById("scrollSentinel").getBoundingClientRect();
+        if (hasMore && !loadingRows && rect.top < window.innerHeight + 600) loadRows(false);
+      });
+    }
+
+    function debounce(fn, ms) {
+      let timer;
+      return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+    }
+
+    function renderTable(appendFrom = 0) {
+      const shown = applications.slice(appendFrom);
+
+      const rowsHtml = shown.map(item => {
         const c = item.candidates || {};
         const p = item.programs || {};
 
@@ -696,12 +726,20 @@
         `;
       }).join("");
 
+      if (appendFrom === 0) tbody.innerHTML = rowsHtml;
+      else tbody.insertAdjacentHTML("beforeend", rowsHtml);
+
       stateMessage.hidden = true;
       table.hidden = false;
 
-      if (!filtered.length) {
+      if (!applications.length) {
         tbody.innerHTML = `<tr><td colspan="15" class="empty">Uyğun nəticə tapılmadı.</td></tr>`;
       }
+      updateSentinel();
+    }
+
+    function renderTableFromStart() {
+      loadRows(true);
     }
 
     const tableMessage = document.getElementById("tableMessage");
@@ -1034,72 +1072,43 @@
         document.querySelectorAll("th[data-sort] .sort-arrow").forEach(el => el.textContent = "");
         th.querySelector(".sort-arrow").textContent = sortState.dir === 1 ? "▲" : "▼";
 
-        renderTable();
+        renderTableFromStart();
       });
     });
 
     async function loadData() {
-      const [applicationsResult, groupsResult, attendanceResult] = await Promise.all([
-        client
-          .from("dma_applications")
-          .select(`
-            id,
-            candidate_id,
-            program_id,
-            eligibility_status,
-            current_status,
-            exam_score,
-            exam_scheduled_at,
-            interview_scheduled_at,
-            interview_attended,
-            interview_result,
-            dma_status,
-            general_note,
-            training_group_id,
-            created_at,
-            candidates:dma_candidates!dma_applications_candidate_id_fkey (
-              id,
-              full_name,
-              fin,
-              whatsapp_phone,
-              email
-            ),
-            programs:dma_programs!dma_applications_program_id_fkey (
-              id,
-              name,
-              slug
-            )
-          `)
-          .order("created_at", { ascending:false }),
-        client
-          .from("dma_training_groups")
-          .select("id, program_id, name, ends_at"),
-        client
-          .from("dma_attendance_records")
-          .select("attended"),
+      const head = { count: "exact", head: true };
+      const [statsResult, waitingResult, noteResult, groupsResult, attTotalResult, attYesResult, programsResult] = await Promise.all([
+        client.rpc("dma_dashboard_stats"),
+        client.from("dma_applications").select("id", head).eq("current_status", "NEW_APPLICATION").is("exam_scheduled_at", null),
+        client.from("dma_applications").select("id", head).not("general_note", "is", null).neq("general_note", ""),
+        client.from("dma_training_groups").select("id, program_id, name, ends_at"),
+        client.from("dma_attendance_records").select("id", head),
+        client.from("dma_attendance_records").select("id", head).eq("attended", true),
+        client.from("dma_programs").select("id, name").order("name"),
       ]);
 
-      if (applicationsResult.error) {
-        console.error("Load data error:", applicationsResult.error);
+      if (statsResult.error) {
+        console.error("Load data error:", statsResult.error);
         stateMessage.className = "error";
-        stateMessage.textContent = "Məlumatlar yüklənmədi: " + applicationsResult.error.message;
+        stateMessage.textContent = "Məlumatlar yüklənmədi: " + statsResult.error.message;
         return;
       }
 
-      if (groupsResult.error) {
-        console.error("Load groups error:", groupsResult.error);
-      }
+      if (groupsResult.error) console.error("Load groups error:", groupsResult.error);
 
-      if (attendanceResult.error) {
-        console.error("Load attendance error:", attendanceResult.error);
-      }
-
-      applications = applicationsResult.data || [];
+      dashData = {
+        stats: statsResult.data || [],
+        waitingLeads: waitingResult.count ?? 0,
+        withNote: noteResult.count ?? 0,
+        attendanceTotal: attTotalResult.count ?? 0,
+        attendanceYes: attYesResult.count ?? 0,
+      };
       trainingGroups = groupsResult.data || [];
-      attendanceRecords = attendanceResult.data || [];
+      programsList = programsResult.data || [];
       renderDashboard();
       populatePrograms();
-      renderTable();
+      await loadRows(true);
     }
 
     async function init() {
@@ -1156,9 +1165,12 @@
       window.location.href = "/admin/login/index.html";
     });
 
-    searchInput.addEventListener("input", renderTable);
-    programFilter.addEventListener("change", renderTable);
-    eligibilityFilter.addEventListener("change", renderTable);
+    searchInput.addEventListener("input", debounce(renderTableFromStart, 300));
+    programFilter.addEventListener("change", renderTableFromStart);
+    eligibilityFilter.addEventListener("change", renderTableFromStart);
+    new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingRows) loadRows(false);
+    }, { rootMargin: "600px" }).observe(document.getElementById("scrollSentinel"));
 
     init();
   </script>
