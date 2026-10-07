@@ -176,11 +176,11 @@
           <div class="panel-body">
             <div class="grid-form">
               <div class="gf-field"><label>Ad</label><input type="text" id="pName" placeholder="Backend Developer"></div>
-              <div class="gf-field"><label>Müddət</label><div style="display:flex;gap:6px"><input type="text" id="pDur" placeholder="3" style="flex:1;min-width:0"><select id="pUnit" style="width:70px"><option value="month">ay</option><option value="day">gün</option></select></div></div>
+              <div class="gf-field"><label>Müddət (gün)</label><input type="text" id="pDur" placeholder="90"></div>
               <div class="gf-actions"><button class="btn-primary" id="pAdd">Təlim əlavə et</button></div>
             </div>
           </div>
-          <table class="grid"><thead><tr><th>Ad</th><th>Müddət</th><th>Status</th><th></th></tr></thead><tbody id="pBody"></tbody></table>
+          <table class="grid"><thead><tr><th>Ad</th><th>Müddət (gün)</th><th>Status</th><th></th></tr></thead><tbody id="pBody"></tbody></table>
         </section>
 
         <section class="panel" data-pane="instructors" hidden>
@@ -264,12 +264,12 @@
 
     // ---- Təlimlər ----
     async function loadPrograms() {
-      const { data, error } = await client.from("dma_programs").select("id, name, slug, duration, duration_unit, is_active").order("name");
+      const { data, error } = await client.from("dma_programs").select("id, name, slug, duration, is_active").order("name");
       if (error) return say("error", "Təlimlər yüklənmədi: " + error.message);
       programs = data || [];
       $("pBody").innerHTML = programs.map(p => `<tr data-id="${p.id}">
         <td><input data-f="name" value="${esc(p.name)}"></td>
-        <td style="width:200px"><div style="display:flex;gap:6px"><input data-f="duration" value="${p.duration ?? ""}" style="flex:1;min-width:0"><select data-f="duration_unit" style="width:70px"><option value="month" ${p.duration_unit !== "day" ? "selected" : ""}>ay</option><option value="day" ${p.duration_unit === "day" ? "selected" : ""}>gün</option></select></div></td>
+        <td style="width:140px"><input data-f="duration" value="${p.duration ?? ""}"></td>
         <td>${badge(p.is_active)}</td>
         <td style="white-space:nowrap">
           <button class="btn-primary btn-sm" data-a="p-save">Yadda saxla</button>
@@ -280,9 +280,9 @@
       const name = $("pName").value.trim(); const dur = $("pDur").value.trim().replace(",", ".");
       if (!name) return say("error", "Təlimin adı mütləqdir.");
       if (dur && isNaN(Number(dur))) return say("error", "Müddət rəqəm olmalıdır.");
-      const { error } = await client.from("dma_programs").insert({ name, slug: slugify(name), duration: dur ? Number(dur) : null, duration_unit: $("pUnit").value, is_active: true });
+      const { error } = await client.from("dma_programs").insert({ name, slug: slugify(name), duration: dur ? Number(dur) : null, is_active: true });
       if (error) return say("error", "Əlavə olunmadı: " + error.message);
-      $("pName").value = ""; $("pDur").value = ""; $("pUnit").value = "month"; say("success", "Təlim əlavə olundu."); loadPrograms().then(loadInstructors);
+      $("pName").value = ""; $("pDur").value = ""; say("success", "Təlim əlavə olundu."); loadPrograms().then(loadInstructors);
     };
 
     // ---- Müəllimlər ----
@@ -411,7 +411,7 @@
           const name = val("name"); const dur = val("duration").replace(",", ".");
           if (!name) throw new Error("Ad mütləqdir.");
           if (dur && isNaN(Number(dur))) throw new Error("Müddət rəqəm olmalıdır.");
-          const { error } = await client.from("dma_programs").update({ name, duration: dur ? Number(dur) : null, duration_unit: val("duration_unit") }).eq("id", id);
+          const { error } = await client.from("dma_programs").update({ name, duration: dur ? Number(dur) : null }).eq("id", id);
           if (error) throw error; say("success", "Təlim yeniləndi."); await loadPrograms();
         } else if (a === "p-toggle") {
           const p = programs.find(x => String(x.id) === id);

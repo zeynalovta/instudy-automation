@@ -68,7 +68,7 @@ function isValidDate(value) {
 async function handleGet(req, res) {
   const { data, error } = await supabase
     .from("dma_programs")
-    .select("id, name, slug, duration, duration_unit")
+    .select("id, name, slug, duration")
     .eq("is_active", true)
     .order("name");
 
