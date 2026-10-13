@@ -228,7 +228,7 @@
         client.from("dma_group_sessions")
           .select("training_group_id, expected_count, present_count, teacher_status, replacement_instructor_id")
           .eq("session_date", date),
-        client.from("dma_applications").select("training_group_id").not("training_group_id", "is", null),
+        client.from("dma_applications").select("training_group_id, current_status, expelled_at").not("training_group_id", "is", null),
         client.from("dma_non_working_days").select("day, note").eq("day", date).maybeSingle(),
         client.from("dma_instructors").select("id, full_name").eq("is_active", true).order("full_name"),
       ]);
@@ -242,7 +242,11 @@
 
       const sessionByGroup = new Map((sessionsRes.data || []).map(r => [r.training_group_id, r]));
       const memberCount = new Map();
-      for (const m of membersRes.data || []) memberCount.set(m.training_group_id, (memberCount.get(m.training_group_id) || 0) + 1);
+      // Xaric edilən tələbə xaric tarixindən (həmin gün daxil) gözlənilən sayda sayılmır.
+      for (const m of membersRes.data || []) {
+        if (m.current_status === "EXPELLED" && (!m.expelled_at || m.expelled_at <= date)) continue;
+        memberCount.set(m.training_group_id, (memberCount.get(m.training_group_id) || 0) + 1);
+      }
       const day = new Date(date + "T00:00:00").getDay();
       offDay = offRes.data || null;
       instructors = instrRes.data || [];

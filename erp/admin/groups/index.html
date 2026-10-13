@@ -122,6 +122,13 @@
     .members a { color:var(--ink); text-decoration:none; font-weight:600; }
     .members a:hover { color:var(--green); }
     .members span { color:var(--muted); font-size:12px; }
+    .m-item { display:flex; align-items:center; gap:8px; }
+    .m-item.expelled a { color:var(--muted); text-decoration:line-through; }
+    .m-expel { border:1px solid #ffd7d7; background:#fff; color:#a33d3d; border-radius:8px; padding:3px 9px; font-size:12px; font-weight:700; cursor:pointer; }
+    .expel-form { display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff7f7; border:1px solid #ffd7d7; border-radius:10px; padding:8px 10px; width:100%; }
+    .expel-form input, .expel-form select { border:1px solid #d5dfe3; border-radius:8px; padding:6px 8px; font:inherit; font-size:12.5px; }
+    .expel-form button { border:0; border-radius:8px; padding:7px 12px; font-weight:800; cursor:pointer; font-size:12.5px; }
+    .expel-form .ok { background:#a33d3d; color:#fff; }
     .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; }
     .badge.green { background:#e8f6ee; color:#1d7a4a; }
     .badge.blue { background:#eaf2ff; color:#2459b3; }
@@ -254,6 +261,10 @@
     let instructors = [];
     let memberCounts = new Map();
     let membersCache = new Map();
+    let totalCounts = new Map();
+    let expellingId = null;
+    const EXPEL_REASONS = { ATTENDANCE: "Davamiyyət", EMPLOYED: "İşə düzəlmə", SELF: "Öz istəyi", OTHER: "Digər" };
+    const todayBaku = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Baku" }).format(new Date());
     let expandedId = null;
     let editingId = null;
 
@@ -330,11 +341,15 @@
 
       const { data: members, error: membersError } = await client
         .from("dma_applications")
-        .select("training_group_id")
+        .select("training_group_id, current_status")
         .not("training_group_id", "is", null);
       if (membersError) console.error("Members load error:", membersError);
       memberCounts = new Map();
-      (members || []).forEach(m => memberCounts.set(m.training_group_id, (memberCounts.get(m.training_group_id) || 0) + 1));
+      totalCounts = new Map();
+      (members || []).forEach(m => {
+        totalCounts.set(m.training_group_id, (totalCounts.get(m.training_group_id) || 0) + 1);
+        if (m.current_status !== "EXPELLED") memberCounts.set(m.training_group_id, (memberCounts.get(m.training_group_id) || 0) + 1);
+      });
 
       stateMessage.hidden = true;
       table.hidden = false;
@@ -344,7 +359,7 @@
     async function loadMembers(id) {
       const { data, error } = await client
         .from("dma_applications")
-        .select("id, current_status, candidates:dma_candidates!dma_applications_candidate_id_fkey ( full_name, whatsapp_phone )")
+        .select("id, current_status, expelled_at, expelled_reason, expelled_note, candidates:dma_candidates!dma_applications_candidate_id_fkey ( full_name, whatsapp_phone )")
         .eq("training_group_id", id)
         .order("created_at", { ascending: true });
       if (error) { console.error("Members detail error:", error); }
@@ -358,8 +373,27 @@
     function memberRow(g) {
       const list = membersCache.get(g.id);
       if (!list) return `<tr class="sub-row"><td colspan="9"><div class="members"><span>Yüklənir...</span></div></td></tr>`;
+      const active = list.filter(m => m.current_status !== "EXPELLED");
+      const expelled = list.filter(m => m.current_status === "EXPELLED");
+      const item = m => {
+        const name = `<a href="candidates/index.html?id=${m.id}">${escapeHtml(m.candidates?.full_name || "—")}</a> <span>${escapeHtml(m.candidates?.whatsapp_phone || "")}</span>`;
+        if (m.current_status === "EXPELLED") {
+          const info = [m.expelled_at ? "xaric: " + fmtDate(m.expelled_at) : "xaric", EXPEL_REASONS[m.expelled_reason], m.expelled_note].filter(Boolean).join(" · ");
+          return `<div class="m-item expelled">${name}<span>${escapeHtml(info)}</span></div>`;
+        }
+        const btn = m.current_status === "ENROLLED" ? `<button type="button" class="m-expel" data-action="expel" data-id="${m.id}">Xaric et</button>` : "";
+        const form = expellingId === m.id ? `
+          <div class="expel-form" data-expel-form="${m.id}">
+            <span>Xaric tarixi</span><input type="date" data-e="date" value="${todayBaku()}">
+            <select data-e="reason"><option value="">Səbəb seçin...</option>${Object.entries(EXPEL_REASONS).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+            <input type="text" data-e="note" placeholder="Qeyd (istəyə bağlı)">
+            <button type="button" class="ok" data-action="expel-save" data-id="${m.id}">Təsdiq et</button>
+            <button type="button" data-action="expel-cancel" data-id="${m.id}">Ləğv et</button>
+          </div>` : "";
+        return `<div class="m-item">${name}${btn}</div>${form}`;
+      };
       const body = list.length
-        ? list.map(m => `<a href="candidates/index.html?id=${m.id}">${escapeHtml(m.candidates?.full_name || "—")}</a> <span>${escapeHtml(m.candidates?.whatsapp_phone || "")}</span>`).join("")
+        ? active.map(item).join("") + expelled.map(item).join("")
         : `<span>Bu qrupda hələ üzv yoxdur</span>`;
       return `<tr class="sub-row"><td colspan="9"><div class="members">${body}</div></td></tr>`;
     }
@@ -396,7 +430,7 @@
           <td class="c-date">${fmtDate(g.starts_at)}</td>
           <td class="c-slot">${SLOT_LABELS[g.training_slot] || "—"}</td>
           <td class="c-date">${fmtDate(g.ends_at)}</td>
-          <td class="c-num"><span class="cnt" data-action="members" data-id="${g.id}">${count} nəfər</span></td>
+          <td class="c-num"><span class="cnt" data-action="members" data-id="${g.id}">${totalCounts.get(g.id) > count ? count + " / " + totalCounts.get(g.id) : count} nəfər</span></td>
           <td class="c-stat"><span class="badge ${STATUS_CLASS[st]}">${st}</span></td>
           <td class="c-act">
             <button type="button" class="more" data-action="menu" data-id="${g.id}">⋯</button>
@@ -461,6 +495,37 @@
         return;
       }
       closeMenus();
+
+      if (action === "expel") {
+        expellingId = id;
+        render();
+        return;
+      }
+
+      if (action === "expel-cancel") {
+        expellingId = null;
+        render();
+        return;
+      }
+
+      if (action === "expel-save") {
+        const box = tbody.querySelector(`[data-expel-form="${id}"]`);
+        const date = box.querySelector('[data-e="date"]').value;
+        const reason = box.querySelector('[data-e="reason"]').value;
+        const note = box.querySelector('[data-e="note"]').value.trim();
+        if (!date || !reason) { alert("Xaric tarixi və səbəb seçilməlidir."); return; }
+        if (!confirm("Tələbə xaric edilsin? Bu əməliyyat geri qaytarılmır.")) return;
+        el.disabled = true;
+        const { error } = await client.from("dma_applications")
+          .update({ current_status: "EXPELLED", expelled_at: date, expelled_reason: reason, expelled_note: note || null })
+          .eq("id", id);
+        el.disabled = false;
+        if (error) { console.error("Expel error:", error); alert("Xaric edilmədi: " + error.message); return; }
+        expellingId = null;
+        await loadGroups();
+        if (expandedId) { await loadMembers(expandedId); render(); }
+        return;
+      }
 
       if (action === "members") {
         if (expandedId === id) { expandedId = null; render(); return; }
