@@ -40,14 +40,14 @@
       cursor:pointer; font-weight:700;
     }
     .content { padding:28px; }
-    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px; }
+    .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:22px; }
     .stat { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; }
     .stat span { color:var(--muted); font-size:13px; font-weight:700; }
     .stat strong { display:block; font-size:30px; margin-top:7px; }
     .panel { background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden; }
     .panel-head { padding:18px 20px; border-bottom:1px solid var(--line); font-weight:800; }
     .table-wrap { overflow-x:auto; }
-    table { width:100%; border-collapse:collapse; min-width:1250px; }
+    table { width:100%; border-collapse:collapse; min-width:1700px; }
     th,td { text-align:left; padding:12px 14px; border-bottom:1px solid #edf1f3; font-size:13px; vertical-align:middle; }
     th { color:#6d7b83; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#fbfcfd; }
     .badge {
@@ -57,6 +57,13 @@
     .green { background:#e8f7f3; color:#176b58; }
     .yellow { background:#fff7dd; color:#8a6812; }
     .gray { background:#f0f3f5; color:#607078; }
+    .red { background:#fff0f0; color:#a33d3d; }
+    .orange { background:#fff1e3; color:#a85811; }
+    .filters { display:flex; gap:8px; padding:14px 20px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+    .filters input, .filters select, .filters button { border:1px solid #d5dfe3; border-radius:9px; padding:9px 11px; font:inherit; font-size:13px; background:#fff; }
+    .filters input { flex:1; min-width:220px; }
+    .filters button { cursor:pointer; font-weight:700; color:#45545e; }
+    .footer { padding:13px 20px; font-size:12px; color:var(--muted); }
     .mini-select, .note-input, .date-input {
       border:1px solid #d5dfe3; border-radius:9px; padding:7px 9px; font-size:12.5px; font:inherit;
     }
@@ -106,13 +113,22 @@
 
       <section class="content">
         <div class="stats">
-          <div class="stat"><span>Cəmi (təlimdə + məzun)</span><strong id="totalCount">—</strong></div>
-          <div class="stat"><span>Məzun oldu</span><strong id="graduatedCount">—</strong></div>
+          <div class="stat"><span>Məzun</span><strong id="graduatedCount">—</strong></div>
           <div class="stat"><span>İş tapdı</span><strong id="employedCount">—</strong></div>
+          <div class="stat"><span>Sertifikat aldı</span><strong id="certCount">—</strong></div>
+          <div class="stat"><span>Müddət davam edir</span><strong id="openCount">—</strong></div>
+          <div class="stat"><span>Müddəti bitib (işsiz)</span><strong id="overdueCount">—</strong></div>
         </div>
 
         <section class="panel">
-          <div class="panel-head">Təlimdə və məzun namizədlər</div>
+          <div class="panel-head">Məzunlar</div>
+          <div class="filters">
+            <input id="search" placeholder="Ad, qrup və ya iş yeri üzrə axtar...">
+            <select id="programFilter"><option value="">Bütün proqramlar</option></select>
+            <select id="employmentFilter"><option value="">Bütün məşğulluq</option><option value="EMPLOYED">İş tapdı</option><option value="SEEKING">İş axtarır</option><option value="NOT_SEEKING">İş axtarmır</option><option value="NONE">Məlum deyil</option><option value="CERT">Sertifikat alıb</option></select>
+            <select id="deadlineFilter"><option value="">Bütün müddətlər</option><option value="open">Müddət davam edir</option><option value="soon">14 gün və ya az qalıb</option><option value="overdue">Müddəti bitib</option></select>
+            <button id="resetFilters" type="button">Sıfırla</button>
+          </div>
           <div id="tableMessage" class="message"></div>
           <div class="table-wrap">
             <div id="stateMessage" class="loading">Yüklənir...</div>
@@ -123,15 +139,19 @@
                   <th>Proqram</th>
                   <th>Qrup</th>
                   <th>Kursun bitmə tarixi</th>
-                  <th>Status</th>
+                  <th>İşə düzəltmə / sertifikat son tarixi</th>
+                  <th>Müddət</th>
                   <th>Məşğulluq</th>
                   <th>İş yeri / qeyd</th>
                   <th>İşə qəbul tarixi</th>
+                  <th>Beynəlxalq sertifikat</th>
+                  <th>Sertifikat tarixi</th>
                 </tr>
               </thead>
               <tbody id="candidateBody"></tbody>
             </table>
           </div>
+          <div class="footer" id="footerCount"></div>
         </section>
       </section>
     </main>
@@ -152,7 +172,36 @@
 
     let applications = [];
 
-    const stageStatusLabel = { ENROLLED: "Təlimdədir", GRADUATED: "Məzun oldu" };
+    // Təlim bitəndən sonra işə düzəltmə / beynəlxalq sertifikat üçün müddət: bitmə tarixi + 89 gün (90 gün zəmanətinə ehtiyat gün).
+    const DEADLINE_DAYS = 89;
+    const SOON_DAYS = 14;
+    function todayBaku() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Baku" }).format(new Date()); }
+    function addDays(isoDate, days) {
+      const d = new Date(isoDate + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
+    function daysBetween(fromIso, toIso) {
+      return Math.round((new Date(toIso + "T00:00:00Z") - new Date(fromIso + "T00:00:00Z")) / 86400000);
+    }
+    // employed -> done; otherwise state by days left to the deadline.
+    function deadlineInfo(item) {
+      const end = item.dma_training_groups?.ends_at;
+      if (!end) return { date: null, state: "none", left: null };
+      const date = addDays(end, DEADLINE_DAYS);
+      const left = daysBetween(todayBaku(), date);
+      let state = left < 0 ? "overdue" : left <= SOON_DAYS ? "soon" : "open";
+      const how = item.employment_status === "EMPLOYED" ? "job" : item.certificate_at ? "cert" : null;
+      if (how) state = "done";
+      return { date, state, left, how };
+    }
+    function deadlineBadge(info) {
+      if (info.state === "done") return `<span class="badge green">${info.how === "job" ? "İş tapıb" : "Sertifikat alıb"}</span>`;
+      if (info.state === "none") return '<span class="badge gray">—</span>';
+      if (info.state === "overdue") return `<span class="badge red">${-info.left} gün keçib</span>`;
+      if (info.state === "soon") return `<span class="badge orange">${info.left} gün qalıb</span>`;
+      return `<span class="badge yellow">${info.left} gün qalıb</span>`;
+    }
     const employmentLabel = { SEEKING: "İş axtarır", EMPLOYED: "İş tapdı", NOT_SEEKING: "İş axtarmır" };
 
     function isAdminUser(user) {
@@ -204,35 +253,51 @@
     }
 
     function renderStats() {
-      document.getElementById("totalCount").textContent = applications.length;
-      document.getElementById("graduatedCount").textContent =
-        applications.filter(a => a.current_status === "GRADUATED").length;
-      document.getElementById("employedCount").textContent =
-        applications.filter(a => a.employment_status === "EMPLOYED").length;
+      const infos = applications.map(deadlineInfo);
+      document.getElementById("graduatedCount").textContent = applications.length;
+      document.getElementById("employedCount").textContent = applications.filter(a => a.employment_status === "EMPLOYED").length;
+      document.getElementById("certCount").textContent = applications.filter(a => a.certificate_at).length;
+      document.getElementById("openCount").textContent = infos.filter(i => i.state === "open" || i.state === "soon").length;
+      document.getElementById("overdueCount").textContent = infos.filter(i => i.state === "overdue").length;
+    }
+
+    function filteredApplications() {
+      const q = document.getElementById("search").value.trim().toLocaleLowerCase("az");
+      const prog = document.getElementById("programFilter").value;
+      const emp = document.getElementById("employmentFilter").value;
+      const dl = document.getElementById("deadlineFilter").value;
+      return applications.filter(item => {
+        const c = item.dma_candidates || {};
+        const info = deadlineInfo(item);
+        if (prog && item.dma_programs?.name !== prog) return false;
+        if (emp === "CERT") { if (!item.certificate_at) return false; }
+        else if (emp && (emp === "NONE" ? item.employment_status : item.employment_status !== emp)) return false;
+        if (dl === "open" && info.state !== "open" && info.state !== "soon") return false;
+        if (dl === "soon" && info.state !== "soon") return false;
+        if (dl === "overdue" && info.state !== "overdue") return false;
+        if (!q) return true;
+        return [c.full_name, item.dma_training_groups?.name, item.employment_note].join(" ").toLocaleLowerCase("az").includes(q);
+      });
     }
 
     function renderTable() {
-      tbody.innerHTML = applications.map(item => {
-        const c = item.candidates || {};
-        const p = item.programs || {};
-        const g = item.training_groups || {};
-
+      const list = filteredApplications();
+      tbody.innerHTML = list.map(item => {
+        const c = item.dma_candidates || {};
+        const p = item.dma_programs || {};
+        const g = item.dma_training_groups || {};
+        const info = deadlineInfo(item);
         return `
           <tr>
             <td><a href="/admin/candidates/index.html?id=${item.id}" style="color:var(--ink);font-weight:800;text-decoration:none;">${escapeHtml(c.full_name || "—")}</a></td>
             <td>${escapeHtml(p.name || "—")}</td>
             <td>${escapeHtml(g.name || "—")}</td>
             <td>${formatDate(g.ends_at)}</td>
-            <td>
-              <select class="mini-select stage-select" data-id="${item.id}" data-previous-value="${item.current_status}">
-                ${Object.entries(stageStatusLabel).map(([value, label]) => `
-                  <option value="${value}" ${value === item.current_status ? "selected" : ""}>${escapeHtml(label)}</option>
-                `).join("")}
-              </select>
-            </td>
+            <td>${info.date ? formatDate(info.date) : "—"}</td>
+            <td>${deadlineBadge(info)}</td>
             <td>
               <select class="mini-select employment-select" data-id="${item.id}" data-previous-value="${item.employment_status ?? ""}">
-                <option value="" ${!item.employment_status ? "selected" : ""}>—</option>
+                <option value="" ${!item.employment_status ? "selected" : ""}>Məlum deyil</option>
                 ${Object.entries(employmentLabel).map(([value, label]) => `
                   <option value="${value}" ${item.employment_status === value ? "selected" : ""}>${escapeHtml(label)}</option>
                 `).join("")}
@@ -247,41 +312,26 @@
               <input type="date" class="date-input employment-date-input" data-id="${item.id}"
                 value="${item.employed_at || ""}" data-previous-value="${item.employed_at || ""}">
             </td>
+            <td>
+              <input type="text" class="note-input certificate-name-input" data-id="${item.id}"
+                value="${escapeHtml(item.certificate_name || "")}" data-previous-value="${escapeHtml(item.certificate_name || "")}"
+                placeholder="Sertifikatın adı...">
+            </td>
+            <td>
+              <input type="date" class="date-input certificate-date-input" data-id="${item.id}"
+                value="${item.certificate_at || ""}" data-previous-value="${item.certificate_at || ""}">
+            </td>
           </tr>
         `;
       }).join("");
 
       stateMessage.hidden = true;
       table.hidden = false;
+      document.getElementById("footerCount").textContent = `${list.length} məzun göstərilir`;
 
-      if (!applications.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty">Hələ təlimdə/məzun namizəd yoxdur.</td></tr>`;
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="11" class="empty">${applications.length ? "Filtrlərə uyğun məzun tapılmadı." : "Hələ məzun yoxdur."}</td></tr>`;
       }
-    }
-
-    async function updateStage(applicationId, newStatus, selectEl) {
-      const previousValue = selectEl.dataset.previousValue;
-      selectEl.disabled = true;
-
-      const { error } = await client
-        .from("dma_applications")
-        .update({ current_status: newStatus })
-        .eq("id", applicationId);
-
-      selectEl.disabled = false;
-
-      if (error) {
-        console.error("Stage update error:", error);
-        showTableMessage("error", "Status yenilənmədi: " + error.message);
-        selectEl.value = previousValue;
-        return;
-      }
-
-      selectEl.dataset.previousValue = newStatus;
-      const item = applications.find(a => a.id === applicationId);
-      if (item) item.current_status = newStatus;
-      renderStats();
-      showTableMessage("success", "Status yeniləndi: " + (stageStatusLabel[newStatus] || newStatus));
     }
 
     async function updateEmploymentStatus(applicationId, value, selectEl) {
@@ -307,6 +357,7 @@
       const item = applications.find(a => a.id === applicationId);
       if (item) item.employment_status = newValue;
       renderStats();
+      renderTable();
       showTableMessage("success", "Məşğulluq statusu yeniləndi.");
     }
 
@@ -332,16 +383,11 @@
       inputEl.dataset.previousValue = newValue || "";
       const item = applications.find(a => a.id === applicationId);
       if (item) item[field] = newValue;
+      if (field === "certificate_at") { renderStats(); renderTable(); }
       showTableMessage("success", "Saxlanıldı.");
     }
 
     tbody.addEventListener("change", event => {
-      const stageEl = event.target.closest(".stage-select");
-      if (stageEl) {
-        updateStage(Number(stageEl.dataset.id), stageEl.value, stageEl);
-        return;
-      }
-
       const employmentEl = event.target.closest(".employment-select");
       if (employmentEl) {
         updateEmploymentStatus(Number(employmentEl.dataset.id), employmentEl.value, employmentEl);
@@ -354,6 +400,16 @@
         return;
       }
 
+      const certNameEl = event.target.closest(".certificate-name-input");
+      if (certNameEl) {
+        updateEmploymentField(Number(certNameEl.dataset.id), "certificate_name", certNameEl.value.trim(), certNameEl);
+        return;
+      }
+      const certDateEl = event.target.closest(".certificate-date-input");
+      if (certDateEl) {
+        updateEmploymentField(Number(certDateEl.dataset.id), "certificate_at", certDateEl.value, certDateEl);
+        return;
+      }
       const dateEl = event.target.closest(".employment-date-input");
       if (dateEl) {
         updateEmploymentField(Number(dateEl.dataset.id), "employed_at", dateEl.value, dateEl);
@@ -361,6 +417,10 @@
     });
 
     async function loadData() {
+      // Qrupu bitmiş təlimdəkilər avtomatik məzun olur (idempotent). Xəta səhifəni dayandırmır.
+      const { error: gradError } = await client.rpc("dma_graduate_finished_groups");
+      if (gradError) console.warn("Auto-graduate failed:", gradError);
+
       const { data, error } = await client
         .from("dma_applications")
         .select(`
@@ -369,11 +429,13 @@
           employment_status,
           employment_note,
           employed_at,
+          certificate_name,
+          certificate_at,
           dma_candidates!dma_applications_candidate_id_fkey ( full_name, whatsapp_phone ),
           dma_programs!dma_applications_program_id_fkey ( name ),
           dma_training_groups!dma_applications_training_group_id_fkey ( name, ends_at )
         `)
-        .in("current_status", ["ENROLLED", "GRADUATED"])
+        .eq("current_status", "GRADUATED")
         .order("id", { ascending: false });
 
       if (error) {
@@ -384,9 +446,19 @@
       }
 
       applications = data || [];
+      const programs = [...new Set(applications.map(a => a.dma_programs?.name).filter(Boolean))].sort();
+      document.getElementById("programFilter").innerHTML = '<option value="">Bütün proqramlar</option>' +
+        programs.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
       renderStats();
       renderTable();
     }
+
+    ["search", "programFilter", "employmentFilter", "deadlineFilter"].forEach(id =>
+      document.getElementById(id).addEventListener("input", renderTable));
+    document.getElementById("resetFilters").addEventListener("click", () => {
+      ["search", "programFilter", "employmentFilter", "deadlineFilter"].forEach(id => document.getElementById(id).value = "");
+      renderTable();
+    });
 
     async function init() {
       try {
